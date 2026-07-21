@@ -132,6 +132,7 @@ function createServer({ env = process.env } = {}) {
                 raw_audio_storage: false,
                 transcript_logging: config.allowTranscriptLogging,
                 modes: ['talk', 'evening', 'quiet'],
+                adult_modes: ['warm', 'flirty', 'sensual', 'direct'],
                 languages: SUPPORTED_LANGUAGES,
                 voices: FEMALE_VOICES,
             });

@@ -61,6 +61,7 @@ test('HTTP and realtime mock smoke', async (t) => {
     assert.equal(config.raw_audio_storage, false);
     assert.equal(config.transcript_logging, false);
     assert.deepEqual(config.languages, ['ru', 'ro', 'en', 'fr']);
+    assert.deepEqual(config.adult_modes, ['warm', 'flirty', 'sensual', 'direct']);
     assert.ok(config.voices.some((voice) => voice.id === 'eve'));
 
     const underAge = await openSocket(wsBase);
@@ -77,6 +78,7 @@ test('HTTP and realtime mock smoke', async (t) => {
         adult_confirmed: true,
         sample_rate: 16000,
         mode: 'evening',
+        adult_mode: 'sensual',
         language: 'fr',
         voice: 'luna',
         no_save: true,
@@ -86,9 +88,13 @@ test('HTTP and realtime mock smoke', async (t) => {
     assert.equal(ready.no_save, true);
     assert.equal(ready.language, 'fr');
     assert.equal(ready.voice, 'luna');
+    assert.equal(ready.adult_mode, 'sensual');
     adult.send(JSON.stringify({ type: 'session.mode.update', mode: 'quiet' }));
     const modeUpdated = await nextEvent(adult, (event) => event.type === 'session.mode.updated');
     assert.equal(modeUpdated.mode, 'quiet');
+    adult.send(JSON.stringify({ type: 'session.adult_mode.update', adult_mode: 'direct' }));
+    const adultModeUpdated = await nextEvent(adult, (event) => event.type === 'session.adult_mode.updated');
+    assert.equal(adultModeUpdated.adult_mode, 'direct');
     adult.send(JSON.stringify({ type: 'text.send', text: 'Сегодня был тяжёлый день.' }));
     const reply = await nextEvent(adult, (event) => event.type === 'transcript.model');
     assert.match(reply.text, /Сегодня был тяжёлый день/);

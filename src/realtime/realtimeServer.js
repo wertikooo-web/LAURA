@@ -10,7 +10,7 @@ const {
 } = require('./wsProtocol');
 const { buildRealtimeSystemInstruction } = require('./realtimePrompt');
 const { resolveInputSampleRate, createInputResampler } = require('./inputAudioResampling');
-const { normalizeSessionOptions, VALID_MODES } = require('../config/env');
+const { normalizeSessionOptions, VALID_MODES, VALID_ADULT_MODES } = require('../config/env');
 
 const MAX_INPUT_BYTES_PER_TURN = 8 * 1024 * 1024;
 
@@ -151,6 +151,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
                 model: providerMetadata.model,
                 voice: options.voice,
                 mode: options.mode,
+                adult_mode: options.adultMode,
                 language: options.language,
                 no_save: options.noSave,
                 input_sample_rate: inputSampleRate,
@@ -170,6 +171,20 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
             }
             send({ type: 'session.mode.updated', mode });
             log('session_mode_updated', { mode, promptHash: prompt.meta.promptHash });
+        }
+
+        function updateAdultMode(payload) {
+            if (!started || !sessionOptions) return fail('session_not_started', 'Start the session first.');
+            const adultMode = String(payload.adult_mode || '').toLowerCase();
+            if (!VALID_ADULT_MODES.has(adultMode)) return fail('invalid_adult_mode', 'Unsupported adult conversation level.');
+            sessionOptions = { ...sessionOptions, adultMode };
+            const prompt = buildRealtimeSystemInstruction(sessionOptions);
+            if (typeof providerSession.updateInstructions !== 'function'
+                || providerSession.updateInstructions(prompt.text, prompt.meta) === false) {
+                return fail('adult_mode_update_failed', 'Could not update the adult conversation level.');
+            }
+            send({ type: 'session.adult_mode.updated', adult_mode: adultMode });
+            log('session_adult_mode_updated', { adultMode, promptHash: prompt.meta.promptHash });
         }
 
         function startInput() {
@@ -242,6 +257,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
             case 'ping': send({ type: 'pong', timestamp_ms: payload.timestamp_ms || Date.now() }); break;
             case 'session.start': await startSession(payload); break;
             case 'session.mode.update': updateMode(payload); break;
+            case 'session.adult_mode.update': updateAdultMode(payload); break;
             case 'input_audio.start': startInput(); break;
             case 'input_audio.end': await endInput(); break;
             case 'session.interrupt': cancelCurrent(payload.reason || 'client_interrupt'); break;

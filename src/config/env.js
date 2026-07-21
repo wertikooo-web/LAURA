@@ -4,6 +4,7 @@ const { SUPPORTED_LANGUAGES, normalizeVoice } = require('../voiceCatalog');
 
 const VALID_PROVIDERS = new Set(['mock', 'xai']);
 const VALID_MODES = new Set(['talk', 'evening', 'quiet']);
+const VALID_ADULT_MODES = new Set(['warm', 'flirty', 'sensual', 'direct']);
 const VALID_LANGUAGES = new Set(SUPPORTED_LANGUAGES);
 
 function bool(value, fallback = false) {
@@ -54,9 +55,11 @@ function loadConfig(env = process.env) {
 function normalizeSessionOptions(value = {}, { defaultVoice = 'eve' } = {}) {
     const mode = String(value.mode || 'talk').toLowerCase();
     const language = String(value.language || value.lang || 'ru').toLowerCase();
+    const adultMode = String(value.adult_mode || value.adultMode || 'warm').toLowerCase();
     return {
         adultConfirmed: value.adult_confirmed === true,
         mode: VALID_MODES.has(mode) ? mode : 'talk',
+        adultMode: VALID_ADULT_MODES.has(adultMode) ? adultMode : 'warm',
         language: VALID_LANGUAGES.has(language) ? language : 'ru',
         voice: normalizeVoice(value.voice, normalizeVoice(defaultVoice)),
         noSave: value.no_save !== false,
@@ -66,6 +69,7 @@ function normalizeSessionOptions(value = {}, { defaultVoice = 'eve' } = {}) {
 module.exports = {
     VALID_PROVIDERS,
     VALID_MODES,
+    VALID_ADULT_MODES,
     VALID_LANGUAGES,
     loadConfig,
     normalizeSessionOptions,

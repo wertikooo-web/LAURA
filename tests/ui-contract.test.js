@@ -30,10 +30,17 @@ test('push-to-talk interrupts first, records while held, and commits on release'
 test('localized controls, clear action and talking lips are present', () => {
   assert.match(html, /id="languageSelect"/);
   assert.match(html, /id="voiceSelect"/);
+  assert.match(html, /id="adultModeSelect"/);
   assert.match(html, /id="clearButton"/);
   assert.match(html, /class="mouth"/);
   assert.match(styles, /overflow:hidden/);
   assert.match(app, /getByteTimeDomainData/);
+});
+
+test('adult style is sent at startup and can be changed live', () => {
+  assert.match(app, /adult_mode:state\.adultMode/);
+  assert.match(app, /session\.adult_mode\.update/);
+  assert.match(app, /laura_adult_mode/);
 });
 
 test('conversation mode can be changed during an active session', () => {

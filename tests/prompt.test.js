@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { CORE_PERSONA_PROMPT, MODE_INSTRUCTIONS } = require('../src/persona/lauraPersona');
+const { CORE_PERSONA_PROMPT, MODE_INSTRUCTIONS, ADULT_MODE_INSTRUCTIONS } = require('../src/persona/lauraPersona');
 const { buildRealtimeSystemInstruction } = require('../src/realtime/realtimePrompt');
 
 test('persona contains adult-topic permission and hard safety boundaries', () => {
@@ -10,6 +10,16 @@ test('persona contains adult-topic permission and hard safety boundaries', () =>
     assert.match(CORE_PERSONA_PROMPT, /несовершеннолетних/);
     assert.match(CORE_PERSONA_PROMPT, /не изображай романтического партнёра/);
     assert.match(CORE_PERSONA_PROMPT, /Не формируй зависимость/);
+    assert.match(CORE_PERSONA_PROMPT, /сексуальные практики/);
+});
+
+test('adult conversation levels are distinct and direct stays bounded', () => {
+    const warm = buildRealtimeSystemInstruction({ adultMode: 'warm' });
+    const direct = buildRealtimeSystemInstruction({ adultMode: 'direct' });
+    assert.match(direct.text, new RegExp(ADULT_MODE_INSTRUCTIONS.direct.slice(0, 24)));
+    assert.match(direct.text, /практики, анатомию, телесные реакции/);
+    assert.match(direct.text, /не создавай порнографическую сцену/);
+    assert.notEqual(warm.meta.promptHash, direct.meta.promptHash);
 });
 
 test('prompt assembly makes mode and privacy explicit', () => {

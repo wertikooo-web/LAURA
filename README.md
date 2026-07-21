@@ -12,6 +12,7 @@ any other project.
 - explicit 18+ confirmation;
 - push-to-start voice session with interruption support;
 - Talk, Evening, and Quiet modes;
+- live Warm, Flirty, Sensual, and Direct adult conversation styles;
 - Russian, Romanian, English, and French interface and response preferences;
 - selectable built-in female xAI voices with short server-side previews;
 - amplitude-driven talking-lips animation during LAURA's audio playback;
@@ -52,6 +53,13 @@ Restart the server. The browser sends microphone PCM frames only to this
 application's WebSocket; the backend proxies the session to xAI. The key stays
 server-side. Language and voice selectors are locked while a realtime session
 is connected; disconnect before changing either setting.
+
+The `Adult style` selector remains live while connected. `Warm` is personal
+but does not initiate intimate topics; `Flirty` adds teasing and attraction;
+`Sensual` adds a slower, more expressive and suggestive tone; `Direct` permits
+plain adult vocabulary and detailed practical discussion of desires, sexual
+practices, anatomy, body responses, consent, comfort, and boundaries. These
+styles do not enable sexual roleplay by LAURA or pornographic scene narration.
 
 Voice previews use xAI's paid TTS endpoint with a fixed short phrase. The
 server validates the requested female voice and language, rate-limits clients,

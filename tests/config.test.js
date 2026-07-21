@@ -28,6 +28,7 @@ test('session options fail private and normalize unknown values', () => {
     assert.deepEqual(normalizeSessionOptions({ adult_confirmed: true, mode: 'unknown', language: 'xx' }), {
         adultConfirmed: true,
         mode: 'talk',
+        adultMode: 'warm',
         language: 'ru',
         voice: 'eve',
         noSave: true,
@@ -36,9 +37,12 @@ test('session options fail private and normalize unknown values', () => {
     assert.deepEqual(normalizeSessionOptions({ language: 'ro', voice: 'luna' }, { defaultVoice: 'ara' }), {
         adultConfirmed: false,
         mode: 'talk',
+        adultMode: 'warm',
         language: 'ro',
         voice: 'luna',
         noSave: true,
     });
     assert.equal(normalizeSessionOptions({ voice: 'male-voice' }, { defaultVoice: 'ursa' }).voice, 'ursa');
+    assert.equal(normalizeSessionOptions({ adult_mode: 'direct' }).adultMode, 'direct');
+    assert.equal(normalizeSessionOptions({ adult_mode: 'unknown' }).adultMode, 'warm');
 });
