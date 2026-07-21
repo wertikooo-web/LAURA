@@ -13,8 +13,9 @@ const {
     MAX_SPEECH_SPEED,
     speechSpeed,
 } = require('./config/env');
-const { createProvider } = require('./providers/createProvider');
+const { createRealtimeProviderRegistry } = require('./providers/createProvider');
 const { attachRealtimeServer } = require('./realtime/realtimeServer');
+const { createRealtimeMetrics } = require('./realtime/realtimeMetrics');
 const { createMemoryStore } = require('./memory/memoryStore');
 const { createMemoryApi } = require('./memory/memoryApi');
 const { SUPPORTED_LANGUAGES, FEMALE_VOICES, FEMALE_VOICE_IDS, PREVIEW_PHRASES } = require('./voiceCatalog');
@@ -63,9 +64,11 @@ function clientAddress(request) {
     return String(request.headers['x-forwarded-for'] || request.socket.remoteAddress || 'unknown').split(',')[0].trim();
 }
 
-function createServer({ env = process.env, memoryStore: providedMemoryStore } = {}) {
+function createServer({ env = process.env, memoryStore: providedMemoryStore, providerOverrides = {} } = {}) {
     const config = loadConfig(env);
-    const provider = createProvider(config);
+    const providerRegistry = createRealtimeProviderRegistry(config, providerOverrides);
+    const provider = providerRegistry.resolve(config.provider);
+    const metrics = createRealtimeMetrics();
     const memoryStore = providedMemoryStore || createMemoryStore(config);
     const handleMemoryApi = createMemoryApi({ memoryStore, sendJson, readJson });
     const publicRoot = path.resolve(__dirname, '..', 'public');
@@ -73,7 +76,7 @@ function createServer({ env = process.env, memoryStore: providedMemoryStore } = 
     const previewRate = new Map();
 
     async function serveVoicePreview(request, response) {
-        if (config.provider !== 'xai') return sendJson(response, 503, { error: 'voice_preview_requires_xai' });
+        if (!config.xai.apiKey) return sendJson(response, 503, { error: 'voice_preview_requires_grok' });
         const now = Date.now();
         const address = clientAddress(request);
         const recent = (previewRate.get(address) || []).filter((time) => now - time < 60_000);
@@ -155,12 +158,16 @@ function createServer({ env = process.env, memoryStore: providedMemoryStore } = 
                 speech_speed_range: { min: MIN_SPEECH_SPEED, max: MAX_SPEECH_SPEED },
                 languages: SUPPORTED_LANGUAGES,
                 voices: FEMALE_VOICES,
+                realtime_providers: providerRegistry.list(),
                 memory_available: memoryStore.available,
                 memory_persistence: memoryStore.persistence,
             });
         }
         if (request.method === 'POST' && url.pathname === '/api/voice-preview') {
             return serveVoicePreview(request, response);
+        }
+        if (request.method === 'GET' && url.pathname === '/api/realtime-metrics') {
+            return sendJson(response, 200, { providers: metrics.summary(), retained_sessions: 200, estimated_cost_note: 'Not calculated until provider pricing is configured.' });
         }
         if (request.method !== 'GET' && request.method !== 'HEAD') {
             return sendJson(response, 405, { error: 'method_not_allowed' });
@@ -187,13 +194,14 @@ function createServer({ env = process.env, memoryStore: providedMemoryStore } = 
     });
 
     attachRealtimeServer(server, {
-        providerFactory: provider.createSession,
-        providerMetadata: provider,
+        resolveProvider: providerRegistry.resolve,
+        defaultProvider: providerRegistry.defaultProvider,
         allowTranscriptLogging: config.allowTranscriptLogging,
         memoryStore,
+        metrics,
     });
     server.on('close', () => memoryStore.close?.().catch?.(() => {}));
-    return { server, config, provider, memoryStore };
+    return { server, config, provider, providerRegistry, memoryStore, metrics };
 }
 
 if (require.main === module) {

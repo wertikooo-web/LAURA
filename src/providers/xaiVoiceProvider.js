@@ -2,6 +2,7 @@
 
 const WebSocket = require('ws');
 const crypto = require('crypto');
+const { normalizeProviderError } = require('./providerErrors');
 
 function safeError(error) {
     return String(error?.message || error || 'provider_error').slice(0, 240);
@@ -33,7 +34,7 @@ function buildXaiSessionConfig(options, config) {
 
 class XaiVoiceProvider {
     constructor(config) {
-        this.name = 'xai';
+        this.name = 'grok';
         this.config = config;
     }
 
@@ -44,7 +45,7 @@ class XaiVoiceProvider {
 
 class XaiVoiceProviderSession {
     constructor({ config, options }) {
-        this.name = 'xai';
+        this.name = 'grok';
         this.config = config;
         this.options = options;
         this.instanceId = `xai_${crypto.randomBytes(8).toString('hex')}`;
@@ -135,6 +136,10 @@ class XaiVoiceProviderSession {
         }
     }
 
+    startInput() {
+        this.sendRaw({ type: 'input_audio_buffer.clear' });
+    }
+
     sendAudioNow(buffer) {
         this.sendRaw({ type: 'input_audio_buffer.append', audio: buffer.toString('base64') });
     }
@@ -180,10 +185,10 @@ class XaiVoiceProviderSession {
     }
 
     emitProviderError(error) {
+        const normalized = normalizeProviderError(error, this.name);
         this.activeContext?.onEvent?.({
             type: 'provider.error',
-            code: 'xai_provider_error',
-            message: safeError(error),
+            ...normalized,
             provider_instance_id: this.instanceId,
         });
     }

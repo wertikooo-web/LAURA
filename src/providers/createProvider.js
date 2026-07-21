@@ -2,12 +2,13 @@
 
 const { MockRealtimeProvider, DEFAULT_CONFIG } = require('../realtime/mockRealtimeProvider');
 const { XaiVoiceProvider } = require('./xaiVoiceProvider');
+const { createRealtimeProviderRegistry } = require('./realtimeProviderRegistry');
 
 function createProvider(config) {
-    if (config.provider === 'xai') {
+    if (config.provider === 'grok') {
         const provider = new XaiVoiceProvider(config.xai);
         return {
-            name: 'xai',
+            name: 'grok',
             model: config.xai.model,
             voice: config.xai.voice,
             createSession: (options) => provider.createSession(options),
@@ -23,3 +24,4 @@ function createProvider(config) {
 }
 
 module.exports = { createProvider };
+module.exports.createRealtimeProviderRegistry = createRealtimeProviderRegistry;

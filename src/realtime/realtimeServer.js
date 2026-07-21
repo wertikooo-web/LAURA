@@ -25,8 +25,8 @@ function id(prefix) {
     return `${prefix}_${crypto.randomBytes(8).toString('hex')}`;
 }
 
-function attachRealtimeServer(server, { providerFactory, providerMetadata, allowTranscriptLogging = false, memoryStore } = {}) {
-    if (typeof providerFactory !== 'function') throw new TypeError('providerFactory is required');
+function attachRealtimeServer(server, { resolveProvider, defaultProvider = 'mock', allowTranscriptLogging = false, memoryStore, metrics } = {}) {
+    if (typeof resolveProvider !== 'function') throw new TypeError('resolveProvider is required');
 
     server.on('upgrade', (request, socket) => {
         const url = new URL(request.url, 'http://localhost');
@@ -41,6 +41,8 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
         let sessionOptions = null;
         let closed = false;
         let providerSession = null;
+        let providerMetadata = { name: defaultProvider };
+        let metricsFinished = false;
         let inputActive = false;
         let inputBytes = 0;
         let inputResampler = null;
@@ -61,6 +63,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
         };
 
         const fail = (code, message, { close = false } = {}) => {
+            if (/provider|connect|authentication|rate_limit/.test(code)) metrics?.error(sessionId);
             send({ type: 'error', code, message });
             if (close) {
                 closed = true;
@@ -75,6 +78,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
             currentGeneration.signal.cancelled = true;
             currentGeneration.signal.reason = reason;
             providerSession?.interrupt?.(reason);
+            metrics?.interrupt(sessionId);
             send({
                 type: 'response.cancelled',
                 response_id: currentGeneration.responseId,
@@ -109,6 +113,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
                     generation_id: event.generation_id || generation.generationId,
                 });
                 if (type === 'audio.end' || type === 'provider.error') {
+                    if (type === 'provider.error') metrics?.error(sessionId);
                     generation.status = type === 'audio.end' ? 'completed' : 'failed';
                     currentGeneration = null;
                     transcriptDelta = '';
@@ -116,6 +121,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
             },
             onAudioChunk(event) {
                 if (generation.signal.cancelled || generation !== currentGeneration) return;
+                if (event.audio_base64) metrics?.addOutput(sessionId, Buffer.byteLength(event.audio_base64, 'base64'));
                 send({
                     ...event,
                     response_id: generation.responseId,
@@ -127,7 +133,12 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
 
         async function startSession(payload) {
             if (started) return fail('session_already_started', 'The session has already started.');
-            const options = normalizeSessionOptions(payload, { defaultVoice: providerMetadata.voice });
+            try {
+                providerMetadata = resolveProvider(payload.realtime_provider || payload.realtimeProvider || defaultProvider);
+            } catch (error) {
+                return fail(error.code || 'provider_configuration_invalid', 'The selected realtime provider is not configured.', { close: true });
+            }
+            const options = normalizeSessionOptions(payload, { defaultVoice: providerMetadata.voice, defaultProvider: providerMetadata.name, voices: providerMetadata.voices });
             if (!options.adultConfirmed) {
                 return fail('adult_confirmation_required', 'LAURA is available only after 18+ confirmation.', { close: true });
             }
@@ -152,13 +163,14 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
             }
             const effectiveOptions = { ...options, sessionMemory };
             const prompt = buildRealtimeSystemInstruction(effectiveOptions);
-            providerSession = providerFactory({
+            providerSession = providerMetadata.createSession({
                 systemInstructionText: prompt.text,
                 systemInstructionMeta: prompt.meta,
                 voice: options.voice,
                 language: options.language,
                 speechSpeed: options.speechSpeed,
             });
+            metrics?.start(sessionId, providerMetadata.name);
             try {
                 if (typeof providerSession.connect === 'function') await providerSession.connect(log);
             } catch (error) {
@@ -248,6 +260,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
             inputActive = true;
             inputBytes = 0;
             inputResampler?.reset?.();
+            Promise.resolve(providerSession.startInput?.()).catch((error) => fail(error.code || 'provider_error', 'Could not start microphone input.'));
             send({ type: 'input_audio.started' });
         }
 
@@ -269,6 +282,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
                 signal: { cancelled: false, reason: null },
             };
             currentGeneration = generation;
+            metrics?.response(sessionId);
             send({
                 type: 'response.created',
                 generation_id: generation.generationId,
@@ -297,6 +311,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
                 signal: { cancelled: false, reason: null },
             };
             currentGeneration = generation;
+            metrics?.response(sessionId);
             send({ type: 'transcript.user', text, turn_id: generation.turnId, generation_id: generation.generationId });
             await providerSession.sendText(text, eventContext(generation));
         }
@@ -335,6 +350,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
                 return fail('audio_turn_too_large', 'The microphone turn is too long.');
             }
             inputBytes += buffer.length;
+            metrics?.addInput(sessionId, buffer.length);
             try {
                 const outgoing = inputResampler ? inputResampler.process(buffer) : buffer;
                 if (outgoing.length) providerSession.sendAudio(outgoing);
@@ -352,6 +368,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
             onClose: () => {
                 closed = true;
                 providerSession?.close?.();
+                if (!metricsFinished) { metricsFinished = true; metrics?.finish(sessionId); }
             },
             onError: () => fail('websocket_frame_error', 'Invalid WebSocket frame.', { close: true }),
         });
@@ -359,10 +376,12 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
         socket.on('error', () => {
             closed = true;
             providerSession?.close?.();
+            if (!metricsFinished) { metricsFinished = true; metrics?.finish(sessionId); }
         });
         socket.on('close', () => {
             closed = true;
             providerSession?.close?.();
+            if (!metricsFinished) { metricsFinished = true; metrics?.finish(sessionId); }
         });
 
         send({ type: 'connection.ready', requires_adult_confirmation: true });

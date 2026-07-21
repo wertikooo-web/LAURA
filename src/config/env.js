@@ -2,10 +2,11 @@
 
 const { SUPPORTED_LANGUAGES, normalizeVoice } = require('../voiceCatalog');
 
-const VALID_PROVIDERS = new Set(['mock', 'xai']);
+const VALID_PROVIDERS = new Set(['mock', 'grok', 'gemini']);
 const VALID_MODES = new Set(['talk', 'evening', 'quiet']);
 const VALID_ADULT_MODES = new Set(['warm', 'flirty', 'sensual', 'direct']);
 const VALID_VOICE_EXPRESSIONS = new Set(['calm', 'alive', 'passionate']);
+const VALID_GEMINI_VOICES = new Set(['Aoede', 'Kore', 'Leda', 'Zephyr']);
 const VALID_LANGUAGES = new Set(SUPPORTED_LANGUAGES);
 const DEFAULT_SPEECH_SPEED = 0.8;
 const MIN_SPEECH_SPEED = 0.7;
@@ -30,8 +31,13 @@ function speechSpeed(value, fallback = DEFAULT_SPEECH_SPEED) {
     return Math.round(parsed * 100) / 100;
 }
 
+function normalizeProviderName(value, fallback = '') {
+    const name = String(value || fallback).trim().toLowerCase();
+    return name === 'xai' ? 'grok' : name;
+}
+
 function loadConfig(env = process.env) {
-    const provider = String(env.REALTIME_PROVIDER || 'mock').trim().toLowerCase();
+    const provider = normalizeProviderName(env.REALTIME_VOICE_PROVIDER || env.REALTIME_PROVIDER || 'mock');
     if (!VALID_PROVIDERS.has(provider)) {
         throw Object.assign(new Error(`unsupported_realtime_provider:${provider}`), {
             code: 'unsupported_realtime_provider',
@@ -47,25 +53,36 @@ function loadConfig(env = process.env) {
         databaseUrl: String(env.DATABASE_URL || ''),
         memoryFilePath: String(env.MEMORY_FILE_PATH || ''),
         xai: {
-            apiKey: String(env.XAI_API_KEY || ''),
+            apiKey: String(env.GROK_API_KEY || env.XAI_API_KEY || ''),
             realtimeUrl: String(env.XAI_REALTIME_URL || 'wss://api.x.ai/v1/realtime'),
-            model: String(env.XAI_MODEL || 'grok-voice-latest'),
-            voice: normalizeVoice(env.XAI_VOICE, 'eve'),
+            model: String(env.GROK_VOICE_MODEL || env.XAI_MODEL || 'grok-voice-latest'),
+            voice: normalizeVoice(env.GROK_VOICE_ID || env.XAI_VOICE, 'eve'),
+        },
+        gemini: {
+            apiKey: String(env.GEMINI_API_KEY || ''),
+            model: String(env.GEMINI_LIVE_MODEL || 'gemini-3.1-flash-live-preview'),
+            voice: String(env.GEMINI_VOICE_ID || 'Aoede'),
         },
     };
 
-    if (provider === 'xai' && !config.xai.apiKey) {
+    if (provider === 'grok' && !config.xai.apiKey) {
         throw Object.assign(new Error('xai_api_key_missing'), { code: 'xai_api_key_missing' });
     }
-    if (!/^wss:\/\//i.test(config.xai.realtimeUrl)) {
+    if (provider === 'gemini' && !config.gemini.apiKey) {
+        throw Object.assign(new Error('gemini_api_key_missing'), { code: 'gemini_api_key_missing' });
+    }
+    if (config.xai.apiKey && !/^wss:\/\//i.test(config.xai.realtimeUrl)) {
         throw Object.assign(new Error('xai_realtime_url_must_use_wss'), {
             code: 'xai_realtime_url_must_use_wss',
         });
     }
+    if (config.gemini.apiKey && !VALID_GEMINI_VOICES.has(config.gemini.voice)) {
+        throw Object.assign(new Error('gemini_voice_invalid'), { code: 'gemini_voice_invalid' });
+    }
     return config;
 }
 
-function normalizeSessionOptions(value = {}, { defaultVoice = 'eve' } = {}) {
+function normalizeSessionOptions(value = {}, { defaultVoice = 'eve', defaultProvider = 'mock', voices } = {}) {
     const mode = String(value.mode || 'talk').toLowerCase();
     const language = String(value.language || value.lang || 'ru').toLowerCase();
     const adultMode = String(value.adult_mode || value.adultMode || 'warm').toLowerCase();
@@ -77,9 +94,12 @@ function normalizeSessionOptions(value = {}, { defaultVoice = 'eve' } = {}) {
         voiceExpression: VALID_VOICE_EXPRESSIONS.has(voiceExpression) ? voiceExpression : 'alive',
         speechSpeed: speechSpeed(value.speech_speed ?? value.speechSpeed),
         language: VALID_LANGUAGES.has(language) ? language : 'ru',
-        voice: normalizeVoice(value.voice, normalizeVoice(defaultVoice)),
+        voice: Array.isArray(voices) && voices.length
+            ? (voices.some((item) => item.id === value.voice) ? value.voice : defaultVoice)
+            : normalizeVoice(value.voice, normalizeVoice(defaultVoice)),
         noSave: value.no_save !== false,
         deviceId: String(value.device_id || value.deviceId || ''),
+        realtimeProvider: normalizeProviderName(value.realtime_provider || value.realtimeProvider, defaultProvider),
     };
 }
 
@@ -93,6 +113,7 @@ module.exports = {
     MIN_SPEECH_SPEED,
     MAX_SPEECH_SPEED,
     speechSpeed,
+    normalizeProviderName,
     loadConfig,
     normalizeSessionOptions,
 };

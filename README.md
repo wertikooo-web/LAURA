@@ -20,7 +20,7 @@ any other project.
 - amplitude-driven talking-lips animation during LAURA's audio playback;
 - in-page transcript clearing and a fixed, no-page-scroll layout;
 - privacy-first no-save mode (enabled by default);
-- provider boundary with `mock` and xAI Grok Voice Realtime implementations;
+- one provider-independent realtime pipeline with `mock`, Grok Voice, and Gemini Live adapters;
 - server-side provider authentication, so API keys never reach the browser;
 - no raw-audio storage and no transcript logging by default.
 
@@ -40,16 +40,37 @@ npm start
 Open `http://127.0.0.1:3000`. The default `mock` provider works without an API
 key and supports text testing of the session and UI.
 
-## Enable Grok Voice
+## Realtime providers
+
+The dashboard can select **Grok Voice** or **Gemini Live** per session. A switch
+first closes the current provider session and then opens the replacement; the
+prompt, memory context, transcript events, interruption controls, browser audio
+pipeline, and lip sync remain shared. Providers that have no server-side key are
+shown as unavailable and cannot be selected.
+
+Enable Grok Voice with:
 
 Set the following in the local `.env` file:
 
 ```text
-REALTIME_PROVIDER=xai
-XAI_API_KEY=your_server_side_key
-XAI_MODEL=grok-voice-latest
-XAI_VOICE=eve
+REALTIME_VOICE_PROVIDER=grok
+GROK_API_KEY=your_server_side_key
+GROK_VOICE_MODEL=grok-voice-latest
+GROK_VOICE_ID=eve
 ```
+
+Enable Gemini Live with:
+
+```text
+REALTIME_VOICE_PROVIDER=gemini
+GEMINI_API_KEY=your_server_side_key
+GEMINI_LIVE_MODEL=gemini-3.1-flash-live-preview
+GEMINI_VOICE_ID=Aoede
+```
+
+`REALTIME_PROVIDER=xai`, `XAI_API_KEY`, `XAI_MODEL`, and `XAI_VOICE` remain
+compatible aliases, so an existing Railway Grok deployment does not require an
+immediate variable migration. Never put either provider key in browser code.
 
 Restart the server. The browser sends microphone PCM frames only to this
 application's WebSocket; the backend proxies the session to xAI. The key stays

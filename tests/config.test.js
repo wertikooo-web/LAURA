@@ -20,8 +20,16 @@ test('xAI configuration requires a server-side key and wss URL', () => {
     }), /xai_realtime_url_must_use_wss/);
 
     const config = loadConfig({ REALTIME_PROVIDER: 'xai', XAI_API_KEY: 'test-only' });
-    assert.equal(config.provider, 'xai');
+    assert.equal(config.provider, 'grok');
     assert.equal(config.xai.model, 'grok-voice-latest');
+});
+
+test('Gemini configuration requires a key and a supported voice', () => {
+    assert.throws(() => loadConfig({ REALTIME_VOICE_PROVIDER: 'gemini' }), /gemini_api_key_missing/);
+    assert.throws(() => loadConfig({ REALTIME_VOICE_PROVIDER: 'gemini', GEMINI_API_KEY: 'test-only', GEMINI_VOICE_ID: 'unknown' }), /gemini_voice_invalid/);
+    const config = loadConfig({ REALTIME_VOICE_PROVIDER: 'gemini', GEMINI_API_KEY: 'test-only', GEMINI_VOICE_ID: 'Kore' });
+    assert.equal(config.provider, 'gemini');
+    assert.equal(config.gemini.voice, 'Kore');
 });
 
 test('session options fail private and normalize unknown values', () => {
@@ -35,6 +43,7 @@ test('session options fail private and normalize unknown values', () => {
         voice: 'eve',
         noSave: true,
         deviceId: '',
+        realtimeProvider: 'mock',
     });
     assert.equal(normalizeSessionOptions({ no_save: false }).noSave, false);
     assert.deepEqual(normalizeSessionOptions({ language: 'ro', voice: 'luna' }, { defaultVoice: 'ara' }), {
@@ -47,6 +56,7 @@ test('session options fail private and normalize unknown values', () => {
         voice: 'luna',
         noSave: true,
         deviceId: '',
+        realtimeProvider: 'mock',
     });
     assert.equal(normalizeSessionOptions({ voice: 'male-voice' }, { defaultVoice: 'ursa' }).voice, 'ursa');
     assert.equal(normalizeSessionOptions({ adult_mode: 'direct' }).adultMode, 'direct');

@@ -74,6 +74,14 @@ test('session selectors are rendered below conversation modes', () => {
   assert.match(styles, /grid-template-rows:auto minmax\(240px,1fr\) auto auto minmax\(104px,\.44fr\) auto auto/);
 });
 
+test('realtime provider selection restarts the single shared session', () => {
+  assert.match(html, /id="providerSelect"/);
+  assert.match(app, /realtime_provider:state\.realtimeProvider/);
+  assert.match(app, /socket\.addEventListener\('close',\(\)=>connect\(\),\{once:true\}\)/);
+  assert.match(app, /send\(\{type:'session\.stop'\}\);socket\.close\(\)/);
+  assert.match(html, /id="metricsTable"/);
+});
+
 test('conversation mode can be changed during an active session', () => {
   assert.match(app, /session\.mode\.update/);
   assert.doesNotMatch(app, /if\s*\(state\.sessionReady\)\s*return;state\.mode/);
