@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#201d1b">
+  <title>LAURA — голос, который живёт рядом</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">VOICE COMPANION · 18+</p>
+        <h1>LAURA</h1>
+      </div>
+      <button id="privacyButton" class="icon-button" type="button" aria-label="Настройки приватности">
+        <span class="privacy-dot"></span> Privacy
+      </button>
+    </header>
+
+    <section class="presence-card" aria-labelledby="presenceTitle">
+      <div class="ambient ambient-one"></div>
+      <div class="ambient ambient-two"></div>
+      <div id="presence" class="presence" data-state="idle" aria-hidden="true">
+        <div class="presence-ring ring-one"></div>
+        <div class="presence-ring ring-two"></div>
+        <div class="presence-core"><span></span></div>
+      </div>
+      <div class="presence-copy">
+        <p id="statusLabel" class="status">Не подключена</p>
+        <h2 id="presenceTitle">Можно ничего<br>сейчас не решать.</h2>
+        <p id="statusHint" class="hint">Начни разговор, когда будешь готов.</p>
+      </div>
+    </section>
+
+    <section class="mode-row" aria-label="Режим разговора">
+      <button class="mode active" data-mode="talk" type="button"><span>Talk</span><small>обычный разговор</small></button>
+      <button class="mode" data-mode="evening" type="button"><span>Evening</span><small>медленнее и тише</small></button>
+      <button class="mode" data-mode="quiet" type="button"><span>Quiet</span><small>минимум слов</small></button>
+    </section>
+
+    <section class="conversation" aria-label="Текст разговора">
+      <div id="transcript" class="transcript" aria-live="polite">
+        <p class="empty">Здесь появится текст текущего разговора. После закрытия страницы он не сохраняется.</p>
+      </div>
+      <form id="textForm" class="text-form">
+        <label class="sr-only" for="textInput">Сообщение для тестирования</label>
+        <input id="textInput" autocomplete="off" maxlength="4000" placeholder="Или напиши для теста…">
+        <button type="submit" aria-label="Отправить">↗</button>
+      </form>
+    </section>
+
+    <div class="controls">
+      <button id="connectButton" class="primary-button" type="button" aria-pressed="false">CONNECT</button>
+      <button id="talkButton" class="talk-button" type="button" disabled>
+        <span class="mic-symbol"></span>
+        <strong>Удерживай и говори</strong>
+      </button>
+      <button id="stopButton" class="stop-button" type="button" disabled>Остановить ответ</button>
+    </div>
+
+    <footer>
+      <span id="providerLabel">provider: loading</span>
+      <span>Сырое аудио не сохраняется</span>
+    </footer>
+  </main>
+
+  <dialog id="ageGate" class="gate">
+    <form method="dialog" class="gate-card">
+      <p class="eyebrow">ПЕРЕД НАЧАЛОМ</p>
+      <h2>LAURA: создана для взрослых</h2>
+      <p>Это голосовой AI-компаньон, а не врач, психотерапевт или живой человек. Разговоры могут касаться личных и интимных взрослых тем.</p>
+      <label class="check-row">
+        <input id="ageCheckbox" type="checkbox">
+        <span>Мне исполнилось 18 лет</span>
+      </label>
+      <button id="ageContinue" class="primary-button" value="continue" disabled>Продолжить</button>
+      <p class="fine-print">Подтверждение в web-прототипе не является полноценной проверкой возраста для production.</p>
+    </form>
+  </dialog>
+
+  <dialog id="privacyDialog" class="gate compact">
+    <form method="dialog" class="gate-card">
+      <p class="eyebrow">ПРИВАТНОСТЬ</p>
+      <h2>Текущая сессия</h2>
+      <label class="toggle-row">
+        <span><strong>Не сохранять разговор</strong><small>В прототипе включено по умолчанию</small></span>
+        <input id="noSaveToggle" type="checkbox" checked>
+      </label>
+      <p>Сырое аудио никогда не записывается на диск. Долгосрочная память пока отключена: сначала должны быть готовы просмотр, согласие и удаление каждого факта.</p>
+      <button class="secondary-button" value="close">Готово</button>
+    </form>
+  </dialog>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>
