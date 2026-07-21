@@ -9,6 +9,7 @@ const state = {
   mode: 'talk',
   noSave: true,
   holding: false,
+  pressActive: false,
   micStream: null,
   inputContext: null,
   processor: null,
@@ -26,6 +27,15 @@ function setPresence(next, label, hint) {
 
 function send(payload) {
   if (state.socket?.readyState === WebSocket.OPEN) state.socket.send(JSON.stringify(payload));
+}
+
+function setConnectionState(connectionState) {
+  const button = $('connectButton');
+  button.dataset.state = connectionState;
+  button.textContent = connectionState === 'connected'
+    ? 'DISCONNECT'
+    : connectionState === 'connecting' ? 'CONNECTING…' : 'CONNECT';
+  button.setAttribute('aria-pressed', String(connectionState !== 'disconnected'));
 }
 
 function addTranscript(role, text, { delta = false } = {}) {
@@ -119,22 +129,27 @@ async function ensureMic() {
 async function startTurn(event) {
   event?.preventDefault();
   if (!state.sessionReady || state.holding) return;
+  state.pressActive = true;
+  event?.currentTarget?.setPointerCapture?.(event.pointerId);
   clearPlayback();
   state.assistantLine = null;
   send({ type: 'session.interrupt', reason: 'user_started_speaking' });
   try {
     await ensureMic();
+    if (!state.pressActive || !state.sessionReady) return;
     state.holding = true;
     $('talkButton').classList.add('recording');
     setPresence('listening', 'Слушаю', 'Отпусти кнопку, когда закончишь.');
     send({ type: 'input_audio.start' });
   } catch (error) {
+    state.pressActive = false;
     setPresence('idle', 'Нет доступа к микрофону', error.message);
   }
 }
 
 function endTurn(event) {
   event?.preventDefault();
+  state.pressActive = false;
   if (!state.holding) return;
   state.holding = false;
   $('talkButton').classList.remove('recording');
@@ -156,7 +171,7 @@ function handleEvent(payload) {
     break;
   case 'session.ready':
     state.sessionReady = true;
-    $('connectButton').textContent = 'Завершить разговор';
+    setConnectionState('connected');
     $('talkButton').disabled = false;
     $('talkButton').classList.add('ready');
     $('providerLabel').textContent = `${payload.provider} · ${payload.voice}`;
@@ -211,6 +226,7 @@ async function connect() {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   const socket = new WebSocket(`${protocol}//${location.host}/realtime`);
   state.socket = socket;
+  setConnectionState('connecting');
   socket.binaryType = 'arraybuffer';
   setPresence('thinking', 'Подключаюсь', 'Один момент.');
   socket.onopen = () => { state.connected = true; };
@@ -223,8 +239,9 @@ async function connect() {
     state.connected = false;
     state.sessionReady = false;
     state.holding = false;
+    state.pressActive = false;
     clearPlayback();
-    $('connectButton').textContent = 'Начать разговор';
+    setConnectionState('disconnected');
     $('talkButton').disabled = true;
     $('talkButton').classList.remove('ready', 'recording');
     $('stopButton').disabled = true;
