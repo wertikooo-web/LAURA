@@ -15,13 +15,6 @@
       <button id="privacyButton" class="icon-button" type="button"><span class="privacy-dot"></span><span data-i18n="privacy">Privacy</span></button>
     </header>
 
-    <section class="selectors" aria-label="Session settings">
-      <label><span>Language</span><select id="languageSelect"><option value="ru">Russian</option><option value="ro">Romanian</option><option value="en">English</option><option value="fr">French</option></select></label>
-      <label><span>Voice</span><select id="voiceSelect"></select></label>
-      <label><span>Adult style</span><select id="adultModeSelect"><option value="warm">Warm</option><option value="flirty">Flirty</option><option value="sensual">Sensual</option><option value="direct">Direct</option></select></label>
-      <button id="previewButton" class="preview-button" type="button" data-i18n="preview">Preview</button>
-    </section>
-
     <section class="presence-card" aria-labelledby="presenceTitle">
       <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
       <div id="presence" class="presence" data-state="idle" aria-hidden="true">
@@ -39,6 +32,13 @@
       <button class="mode active" data-mode="talk" type="button"><span>Talk</span><small data-i18n="modeTalk">обычный разговор</small></button>
       <button class="mode" data-mode="evening" type="button"><span>Evening</span><small data-i18n="modeEvening">медленнее и тише</small></button>
       <button class="mode" data-mode="quiet" type="button"><span>Quiet</span><small data-i18n="modeQuiet">минимум слов</small></button>
+    </section>
+
+    <section class="selectors" aria-label="Session settings">
+      <label><span>Language</span><select id="languageSelect"><option value="ru">Russian</option><option value="ro">Romanian</option><option value="en">English</option><option value="fr">French</option></select></label>
+      <label><span>Voice</span><select id="voiceSelect"></select></label>
+      <label><span>Adult style</span><select id="adultModeSelect"><option value="warm">Warm</option><option value="flirty">Flirty</option><option value="sensual">Sensual</option><option value="direct">Direct</option></select></label>
+      <button id="previewButton" class="preview-button" type="button" data-i18n="preview">Preview</button>
     </section>
 
     <section class="conversation" aria-label="Conversation transcript">

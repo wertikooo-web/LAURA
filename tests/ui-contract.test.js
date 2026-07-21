@@ -43,6 +43,10 @@ test('adult style is sent at startup and can be changed live', () => {
   assert.match(app, /laura_adult_mode/);
 });
 
+test('session selectors are rendered below conversation modes', () => {
+  assert.ok(html.indexOf('class="selectors"') > html.indexOf('class="mode-row"'));
+});
+
 test('conversation mode can be changed during an active session', () => {
   assert.match(app, /session\.mode\.update/);
   assert.doesNotMatch(app, /if\s*\(state\.sessionReady\)\s*return;state\.mode/);
