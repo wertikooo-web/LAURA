@@ -29,6 +29,8 @@ test('session options fail private and normalize unknown values', () => {
         adultConfirmed: true,
         mode: 'talk',
         adultMode: 'warm',
+        voiceExpression: 'alive',
+        speechSpeed: 0.8,
         language: 'ru',
         voice: 'eve',
         noSave: true,
@@ -38,6 +40,8 @@ test('session options fail private and normalize unknown values', () => {
         adultConfirmed: false,
         mode: 'talk',
         adultMode: 'warm',
+        voiceExpression: 'alive',
+        speechSpeed: 0.8,
         language: 'ro',
         voice: 'luna',
         noSave: true,
@@ -45,4 +49,8 @@ test('session options fail private and normalize unknown values', () => {
     assert.equal(normalizeSessionOptions({ voice: 'male-voice' }, { defaultVoice: 'ursa' }).voice, 'ursa');
     assert.equal(normalizeSessionOptions({ adult_mode: 'direct' }).adultMode, 'direct');
     assert.equal(normalizeSessionOptions({ adult_mode: 'unknown' }).adultMode, 'warm');
+    assert.equal(normalizeSessionOptions({ voice_expression: 'passionate' }).voiceExpression, 'passionate');
+    assert.equal(normalizeSessionOptions({ voice_expression: 'unknown' }).voiceExpression, 'alive');
+    assert.equal(normalizeSessionOptions({ speech_speed: 0.72 }).speechSpeed, 0.72);
+    assert.equal(normalizeSessionOptions({ speech_speed: 2 }).speechSpeed, 0.8);
 });

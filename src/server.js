@@ -5,7 +5,14 @@ require('dotenv').config();
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { loadConfig } = require('./config/env');
+const {
+    loadConfig,
+    VALID_VOICE_EXPRESSIONS,
+    DEFAULT_SPEECH_SPEED,
+    MIN_SPEECH_SPEED,
+    MAX_SPEECH_SPEED,
+    speechSpeed,
+} = require('./config/env');
 const { createProvider } = require('./providers/createProvider');
 const { attachRealtimeServer } = require('./realtime/realtimeServer');
 const { SUPPORTED_LANGUAGES, FEMALE_VOICES, FEMALE_VOICE_IDS, PREVIEW_PHRASES } = require('./voiceCatalog');
@@ -75,11 +82,15 @@ function createServer({ env = process.env } = {}) {
         catch (error) { return sendJson(response, error.code === 'request_too_large' ? 413 : 400, { error: error.code || 'invalid_request' }); }
         const voice = String(body.voice || '').toLowerCase();
         const language = String(body.language || '').toLowerCase();
+        const previewSpeed = body.speech_speed == null
+            ? DEFAULT_SPEECH_SPEED
+            : speechSpeed(body.speech_speed, NaN);
         if (!FEMALE_VOICE_IDS.has(voice) || !SUPPORTED_LANGUAGES.includes(language)) {
             return sendJson(response, 400, { error: 'unsupported_voice_or_language' });
         }
+        if (!Number.isFinite(previewSpeed)) return sendJson(response, 400, { error: 'unsupported_speech_speed' });
 
-        const cacheKey = `${voice}:${language}`;
+        const cacheKey = `${voice}:${language}:${previewSpeed}`;
         let audio = previewCache.get(cacheKey);
         if (!audio) {
             let upstream;
@@ -95,6 +106,7 @@ function createServer({ env = process.env } = {}) {
                         voice_id: voice,
                         // xAI TTS does not currently document Romanian as an explicit language code.
                         language: language === 'ro' ? 'auto' : language,
+                        speed: previewSpeed,
                         output_format: { codec: 'mp3' },
                     }),
                     signal: AbortSignal.timeout(20_000),
@@ -133,6 +145,9 @@ function createServer({ env = process.env } = {}) {
                 transcript_logging: config.allowTranscriptLogging,
                 modes: ['talk', 'evening', 'quiet'],
                 adult_modes: ['warm', 'flirty', 'sensual', 'direct'],
+                voice_expressions: [...VALID_VOICE_EXPRESSIONS],
+                default_speech_speed: DEFAULT_SPEECH_SPEED,
+                speech_speed_range: { min: MIN_SPEECH_SPEED, max: MAX_SPEECH_SPEED },
                 languages: SUPPORTED_LANGUAGES,
                 voices: FEMALE_VOICES,
             });

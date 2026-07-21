@@ -5,7 +5,11 @@ const { SUPPORTED_LANGUAGES, normalizeVoice } = require('../voiceCatalog');
 const VALID_PROVIDERS = new Set(['mock', 'xai']);
 const VALID_MODES = new Set(['talk', 'evening', 'quiet']);
 const VALID_ADULT_MODES = new Set(['warm', 'flirty', 'sensual', 'direct']);
+const VALID_VOICE_EXPRESSIONS = new Set(['calm', 'alive', 'passionate']);
 const VALID_LANGUAGES = new Set(SUPPORTED_LANGUAGES);
+const DEFAULT_SPEECH_SPEED = 0.8;
+const MIN_SPEECH_SPEED = 0.7;
+const MAX_SPEECH_SPEED = 1.5;
 
 function bool(value, fallback = false) {
     if (value == null || value === '') return fallback;
@@ -18,6 +22,12 @@ function int(value, fallback, { min, max } = {}) {
     if (Number.isFinite(min) && parsed < min) return fallback;
     if (Number.isFinite(max) && parsed > max) return fallback;
     return parsed;
+}
+
+function speechSpeed(value, fallback = DEFAULT_SPEECH_SPEED) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed < MIN_SPEECH_SPEED || parsed > MAX_SPEECH_SPEED) return fallback;
+    return Math.round(parsed * 100) / 100;
 }
 
 function loadConfig(env = process.env) {
@@ -56,10 +66,13 @@ function normalizeSessionOptions(value = {}, { defaultVoice = 'eve' } = {}) {
     const mode = String(value.mode || 'talk').toLowerCase();
     const language = String(value.language || value.lang || 'ru').toLowerCase();
     const adultMode = String(value.adult_mode || value.adultMode || 'warm').toLowerCase();
+    const voiceExpression = String(value.voice_expression || value.voiceExpression || 'alive').toLowerCase();
     return {
         adultConfirmed: value.adult_confirmed === true,
         mode: VALID_MODES.has(mode) ? mode : 'talk',
         adultMode: VALID_ADULT_MODES.has(adultMode) ? adultMode : 'warm',
+        voiceExpression: VALID_VOICE_EXPRESSIONS.has(voiceExpression) ? voiceExpression : 'alive',
+        speechSpeed: speechSpeed(value.speech_speed ?? value.speechSpeed),
         language: VALID_LANGUAGES.has(language) ? language : 'ru',
         voice: normalizeVoice(value.voice, normalizeVoice(defaultVoice)),
         noSave: value.no_save !== false,
@@ -70,7 +83,12 @@ module.exports = {
     VALID_PROVIDERS,
     VALID_MODES,
     VALID_ADULT_MODES,
+    VALID_VOICE_EXPRESSIONS,
     VALID_LANGUAGES,
+    DEFAULT_SPEECH_SPEED,
+    MIN_SPEECH_SPEED,
+    MAX_SPEECH_SPEED,
+    speechSpeed,
     loadConfig,
     normalizeSessionOptions,
 };

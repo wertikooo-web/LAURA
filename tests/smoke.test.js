@@ -62,6 +62,9 @@ test('HTTP and realtime mock smoke', async (t) => {
     assert.equal(config.transcript_logging, false);
     assert.deepEqual(config.languages, ['ru', 'ro', 'en', 'fr']);
     assert.deepEqual(config.adult_modes, ['warm', 'flirty', 'sensual', 'direct']);
+    assert.deepEqual(config.voice_expressions, ['calm', 'alive', 'passionate']);
+    assert.equal(config.default_speech_speed, 0.8);
+    assert.deepEqual(config.speech_speed_range, { min: 0.7, max: 1.5 });
     assert.ok(config.voices.some((voice) => voice.id === 'eve'));
 
     const underAge = await openSocket(wsBase);
@@ -79,6 +82,8 @@ test('HTTP and realtime mock smoke', async (t) => {
         sample_rate: 16000,
         mode: 'evening',
         adult_mode: 'sensual',
+        voice_expression: 'passionate',
+        speech_speed: 0.72,
         language: 'fr',
         voice: 'luna',
         no_save: true,
@@ -89,12 +94,18 @@ test('HTTP and realtime mock smoke', async (t) => {
     assert.equal(ready.language, 'fr');
     assert.equal(ready.voice, 'luna');
     assert.equal(ready.adult_mode, 'sensual');
+    assert.equal(ready.voice_expression, 'passionate');
+    assert.equal(ready.speech_speed, 0.72);
     adult.send(JSON.stringify({ type: 'session.mode.update', mode: 'quiet' }));
     const modeUpdated = await nextEvent(adult, (event) => event.type === 'session.mode.updated');
     assert.equal(modeUpdated.mode, 'quiet');
     adult.send(JSON.stringify({ type: 'session.adult_mode.update', adult_mode: 'direct' }));
     const adultModeUpdated = await nextEvent(adult, (event) => event.type === 'session.adult_mode.updated');
     assert.equal(adultModeUpdated.adult_mode, 'direct');
+    adult.send(JSON.stringify({ type: 'session.voice_delivery.update', voice_expression: 'calm', speech_speed: 0.9 }));
+    const voiceDeliveryUpdated = await nextEvent(adult, (event) => event.type === 'session.voice_delivery.updated');
+    assert.equal(voiceDeliveryUpdated.voice_expression, 'calm');
+    assert.equal(voiceDeliveryUpdated.speech_speed, 0.9);
     adult.send(JSON.stringify({ type: 'text.send', text: 'Сегодня был тяжёлый день.' }));
     const reply = await nextEvent(adult, (event) => event.type === 'transcript.model');
     assert.match(reply.text, /Сегодня был тяжёлый день/);

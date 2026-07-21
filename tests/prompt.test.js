@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { CORE_PERSONA_PROMPT, MODE_INSTRUCTIONS, ADULT_MODE_INSTRUCTIONS } = require('../src/persona/lauraPersona');
+const { CORE_PERSONA_PROMPT, MODE_INSTRUCTIONS, ADULT_MODE_INSTRUCTIONS, VOICE_EXPRESSION_INSTRUCTIONS } = require('../src/persona/lauraPersona');
 const { buildRealtimeSystemInstruction } = require('../src/realtime/realtimePrompt');
 
 test('persona contains adult-topic permission and hard safety boundaries', () => {
@@ -11,6 +11,16 @@ test('persona contains adult-topic permission and hard safety boundaries', () =>
     assert.match(CORE_PERSONA_PROMPT, /не изображай романтического партнёра/);
     assert.match(CORE_PERSONA_PROMPT, /Не формируй зависимость/);
     assert.match(CORE_PERSONA_PROMPT, /сексуальные практики/);
+    assert.match(CORE_PERSONA_PROMPT, /ЛА́ура/);
+});
+
+test('voice expression changes delivery instructions and preserves LAURA identity', () => {
+    const calm = buildRealtimeSystemInstruction({ voiceExpression: 'calm', language: 'ru' });
+    const passionate = buildRealtimeSystemInstruction({ voiceExpression: 'passionate', language: 'ru' });
+    assert.match(passionate.text, new RegExp(VOICE_EXPRESSION_INSTRUCTIONS.passionate.slice(0, 24)));
+    assert.match(passionate.text, /вдохи, выдохи, вздохи/);
+    assert.match(passionate.text, /Всегда называй себя LAURA/);
+    assert.notEqual(calm.meta.promptHash, passionate.meta.promptHash);
 });
 
 test('adult conversation levels are distinct and direct stays bounded', () => {

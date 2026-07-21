@@ -13,6 +13,8 @@ any other project.
 - push-to-start voice session with interruption support;
 - Talk, Evening, and Quiet modes;
 - live Warm, Flirty, Sensual, and Direct adult conversation styles;
+- live Calm, Alive, and Passionate voice-expression styles;
+- native xAI speech-speed control with a slower `0.8` default;
 - Russian, Romanian, English, and French interface and response preferences;
 - selectable built-in female xAI voices with short server-side previews;
 - amplitude-driven talking-lips animation during LAURA's audio playback;
@@ -61,7 +63,17 @@ plain adult vocabulary and detailed practical discussion of desires, sexual
 practices, anatomy, body responses, consent, comfort, and boundaries. These
 styles do not enable sexual roleplay by LAURA or pornographic scene narration.
 
-Voice previews use xAI's paid TTS endpoint with a fixed short phrase. The
+`Speed` and `Expression` also remain live while connected. Speed is sent to
+xAI as the documented `audio.output.speed` setting (supported range `0.7` to
+`1.5`), rather than changing playback speed in the browser. `Calm`, `Alive`,
+and `Passionate` add progressively stronger delivery instructions for pacing,
+pauses, warmth, laughter, breath, and emotional intensity. Expression is
+model-guided rather than a deterministic audio effect, so its exact strength
+still varies by voice. LAURA's Russian name pronunciation is fixed server-side
+to `ЛА́ура`, with first-syllable stress, using xAI pronunciation replacement.
+
+Voice previews use xAI's paid TTS endpoint with a fixed short phrase and the
+currently selected speed. The
 server validates the requested female voice and language, rate-limits clients,
 and caches generated previews in memory. xAI currently documents Russian,
 English, and French TTS language codes. For Romanian preview the server uses

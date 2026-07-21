@@ -7,6 +7,30 @@ function safeError(error) {
     return String(error?.message || error || 'provider_error').slice(0, 240);
 }
 
+function pronunciationReplacements(language = 'ru') {
+    const spokenName = language === 'ru' ? 'ЛА́ура' : 'LAU-ra';
+    return { LAURA: spokenName, 'Лаура': 'ЛА́ура' };
+}
+
+function buildXaiSessionConfig(options, config) {
+    return {
+        instructions: options.systemInstructionText,
+        voice: options.voice || config.voice,
+        replace: pronunciationReplacements(options.language),
+        turn_detection: null,
+        audio: {
+            input: {
+                format: { type: 'audio/pcm', rate: 16000 },
+                transcription: { model: 'grok-transcribe' },
+            },
+            output: {
+                format: { type: 'audio/pcm', rate: 24000 },
+                speed: options.speechSpeed,
+            },
+        },
+    };
+}
+
 class XaiVoiceProvider {
     constructor(config) {
         this.name = 'xai';
@@ -59,20 +83,7 @@ class XaiVoiceProviderSession {
                 }
                 this.sendRaw({
                     type: 'session.update',
-                    session: {
-                        instructions: this.options.systemInstructionText,
-                        voice: this.options.voice || this.config.voice,
-                        turn_detection: null,
-                        audio: {
-                            input: {
-                                format: { type: 'audio/pcm', rate: 16000 },
-                                transcription: { model: 'grok-transcribe' },
-                            },
-                            output: {
-                                format: { type: 'audio/pcm', rate: 24000 },
-                            },
-                        },
-                    },
+                    session: buildXaiSessionConfig(this.options, this.config),
                 });
                 settled = true;
                 socket.off('error', failConnect);
@@ -103,6 +114,14 @@ class XaiVoiceProviderSession {
         return this.sendRaw({
             type: 'session.update',
             session: { instructions: systemInstructionText },
+        });
+    }
+
+    updateVoiceDelivery(speechSpeed) {
+        this.options.speechSpeed = speechSpeed;
+        return this.sendRaw({
+            type: 'session.update',
+            session: { audio: { output: { speed: speechSpeed } } },
         });
     }
 
@@ -224,4 +243,4 @@ class XaiVoiceProviderSession {
     }
 }
 
-module.exports = { XaiVoiceProvider, XaiVoiceProviderSession };
+module.exports = { XaiVoiceProvider, XaiVoiceProviderSession, buildXaiSessionConfig, pronunciationReplacements };

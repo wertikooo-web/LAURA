@@ -10,7 +10,13 @@ const {
 } = require('./wsProtocol');
 const { buildRealtimeSystemInstruction } = require('./realtimePrompt');
 const { resolveInputSampleRate, createInputResampler } = require('./inputAudioResampling');
-const { normalizeSessionOptions, VALID_MODES, VALID_ADULT_MODES } = require('../config/env');
+const {
+    normalizeSessionOptions,
+    VALID_MODES,
+    VALID_ADULT_MODES,
+    VALID_VOICE_EXPRESSIONS,
+    speechSpeed,
+} = require('../config/env');
 
 const MAX_INPUT_BYTES_PER_TURN = 8 * 1024 * 1024;
 
@@ -137,6 +143,8 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
                 systemInstructionText: prompt.text,
                 systemInstructionMeta: prompt.meta,
                 voice: options.voice,
+                language: options.language,
+                speechSpeed: options.speechSpeed,
             });
             try {
                 if (typeof providerSession.connect === 'function') await providerSession.connect(log);
@@ -152,6 +160,8 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
                 voice: options.voice,
                 mode: options.mode,
                 adult_mode: options.adultMode,
+                voice_expression: options.voiceExpression,
+                speech_speed: options.speechSpeed,
                 language: options.language,
                 no_save: options.noSave,
                 input_sample_rate: inputSampleRate,
@@ -185,6 +195,37 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
             }
             send({ type: 'session.adult_mode.updated', adult_mode: adultMode });
             log('session_adult_mode_updated', { adultMode, promptHash: prompt.meta.promptHash });
+        }
+
+        function updateVoiceDelivery(payload) {
+            if (!started || !sessionOptions) return fail('session_not_started', 'Start the session first.');
+            const voiceExpression = String(payload.voice_expression || '').toLowerCase();
+            if (!VALID_VOICE_EXPRESSIONS.has(voiceExpression)) {
+                return fail('invalid_voice_expression', 'Unsupported voice expression.');
+            }
+            const normalizedSpeed = speechSpeed(payload.speech_speed, NaN);
+            if (!Number.isFinite(normalizedSpeed)) {
+                return fail('invalid_speech_speed', 'Speech speed must be between 0.7 and 1.5.');
+            }
+            sessionOptions = { ...sessionOptions, voiceExpression, speechSpeed: normalizedSpeed };
+            const prompt = buildRealtimeSystemInstruction(sessionOptions);
+            const promptUpdated = typeof providerSession.updateInstructions === 'function'
+                && providerSession.updateInstructions(prompt.text, prompt.meta) !== false;
+            const deliveryUpdated = typeof providerSession.updateVoiceDelivery === 'function'
+                && providerSession.updateVoiceDelivery(normalizedSpeed) !== false;
+            if (!promptUpdated || !deliveryUpdated) {
+                return fail('voice_delivery_update_failed', 'Could not update voice delivery.');
+            }
+            send({
+                type: 'session.voice_delivery.updated',
+                voice_expression: voiceExpression,
+                speech_speed: normalizedSpeed,
+            });
+            log('session_voice_delivery_updated', {
+                voiceExpression,
+                speechSpeed: normalizedSpeed,
+                promptHash: prompt.meta.promptHash,
+            });
         }
 
         function startInput() {
@@ -258,6 +299,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
             case 'session.start': await startSession(payload); break;
             case 'session.mode.update': updateMode(payload); break;
             case 'session.adult_mode.update': updateAdultMode(payload); break;
+            case 'session.voice_delivery.update': updateVoiceDelivery(payload); break;
             case 'input_audio.start': startInput(); break;
             case 'input_audio.end': await endInput(); break;
             case 'session.interrupt': cancelCurrent(payload.reason || 'client_interrupt'); break;

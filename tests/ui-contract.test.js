@@ -31,10 +31,20 @@ test('localized controls, clear action and talking lips are present', () => {
   assert.match(html, /id="languageSelect"/);
   assert.match(html, /id="voiceSelect"/);
   assert.match(html, /id="adultModeSelect"/);
+  assert.match(html, /id="speechSpeedSelect"/);
+  assert.match(html, /id="voiceExpressionSelect"/);
   assert.match(html, /id="clearButton"/);
   assert.match(html, /class="mouth"/);
   assert.match(styles, /overflow:hidden/);
   assert.match(app, /getByteTimeDomainData/);
+});
+
+test('speed and expression are sent at startup and can be changed live', () => {
+  assert.match(app, /speech_speed:state\.speechSpeed/);
+  assert.match(app, /voice_expression:state\.voiceExpression/);
+  assert.match(app, /session\.voice_delivery\.update/);
+  assert.match(app, /laura_speech_speed/);
+  assert.match(app, /laura_voice_expression/);
 });
 
 test('adult style is sent at startup and can be changed live', () => {

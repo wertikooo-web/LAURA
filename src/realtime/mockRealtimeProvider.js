@@ -63,6 +63,7 @@ class MockRealtimeProvider {
             systemInstructionMeta: options.systemInstructionMeta,
             promptSource: options.promptSource,
             rotationReason: options.rotationReason,
+            speechSpeed: options.speechSpeed,
         });
     }
 }
@@ -76,6 +77,7 @@ class MockRealtimeProviderSession {
         systemInstructionMeta,
         promptSource,
         rotationReason,
+        speechSpeed,
     }) {
         this.config = config;
         this.name = providerName;
@@ -84,6 +86,7 @@ class MockRealtimeProviderSession {
         this.systemInstructionMeta = systemInstructionMeta || {};
         this.promptSource = promptSource || 'default';
         this.rotationReason = rotationReason || 'initial';
+        this.speechSpeed = speechSpeed;
         this.closed = false;
         this.activeSignal = null;
         this.inputBytes = 0;
@@ -168,6 +171,11 @@ class MockRealtimeProviderSession {
     updateInstructions(systemInstructionText, systemInstructionMeta = {}) {
         this.systemInstructionText = systemInstructionText;
         this.systemInstructionMeta = systemInstructionMeta;
+        return true;
+    }
+
+    updateVoiceDelivery(speechSpeed) {
+        this.speechSpeed = speechSpeed;
         return true;
     }
 

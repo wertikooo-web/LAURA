@@ -36,6 +36,7 @@ test('voice preview validates input, proxies fixed text and caches audio', async
     assert.equal(calls[0].url, 'https://api.x.ai/v1/tts');
     assert.equal(calls[0].body.voice_id, 'luna');
     assert.equal(calls[0].body.language, 'auto');
+    assert.equal(calls[0].body.speed, 0.8);
     assert.match(calls[0].body.text, /Laura/);
     assert.match(calls[0].options.headers.Authorization, /^Bearer /);
 });
