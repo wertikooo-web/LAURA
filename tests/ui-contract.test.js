@@ -45,6 +45,8 @@ test('adult style is sent at startup and can be changed live', () => {
 
 test('session selectors are rendered below conversation modes', () => {
   assert.ok(html.indexOf('class="selectors"') > html.indexOf('class="mode-row"'));
+  assert.match(styles, /grid-template-rows:auto minmax\(165px,1fr\) auto auto minmax\(84px,\.52fr\) auto auto/);
+  assert.match(styles, /grid-template-rows:auto minmax\(240px,1fr\) auto auto minmax\(104px,\.44fr\) auto auto/);
 });
 
 test('conversation mode can be changed during an active session', () => {
