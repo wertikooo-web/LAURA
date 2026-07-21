@@ -40,3 +40,10 @@ test('conversation mode can be changed during an active session', () => {
   assert.match(app, /session\.mode\.update/);
   assert.doesNotMatch(app, /if\s*\(state\.sessionReady\)\s*return;state\.mode/);
 });
+
+test('voice preview uses the protected server endpoint and unlocked audio context', () => {
+  assert.match(app, /fetch\(['"]\/api\/voice-preview/);
+  assert.match(app, /playbackContext\.resume\(\)/);
+  assert.match(app, /decodeAudioData/);
+  assert.doesNotMatch(app, /new Audio\(`\/previews\//);
+});
