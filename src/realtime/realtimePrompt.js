@@ -22,12 +22,13 @@ function withinLimit(text, label) {
 }
 
 function languageInstruction(language) {
-    if (language === 'ru') return 'Говори по-русски, пока пользователь явно не перейдёт на другой язык.';
-    if (language === 'en') return 'Speak English unless the user clearly switches to another language.';
-    return 'Reply in the language of the user’s latest clearly understood utterance. Do not switch because of one foreign word or name.';
+    if (language === 'ro') return 'Răspunde exclusiv în limba română. Nu schimba limba din cauza unor cuvinte sau nume străine.';
+    if (language === 'en') return 'Reply exclusively in English. Do not switch languages because of foreign words or names.';
+    if (language === 'fr') return 'Réponds exclusivement en français. Ne change pas de langue à cause de mots ou de noms étrangers.';
+    return 'Отвечай исключительно на русском языке. Не меняй язык из-за отдельных иностранных слов или имён.';
 }
 
-function buildRealtimeSystemInstruction({ mode = 'talk', language = 'auto', noSave = true, sessionMemory = null } = {}) {
+function buildRealtimeSystemInstruction({ mode = 'talk', language = 'ru', noSave = true, sessionMemory = null } = {}) {
     const persona = withinLimit(defaultPersonaPrompt(), 'persona');
     const context = [
         MODE_INSTRUCTIONS[mode] || MODE_INSTRUCTIONS.talk,

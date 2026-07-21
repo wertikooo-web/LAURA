@@ -1,8 +1,10 @@
 'use strict';
 
+const { SUPPORTED_LANGUAGES, normalizeVoice } = require('../voiceCatalog');
+
 const VALID_PROVIDERS = new Set(['mock', 'xai']);
 const VALID_MODES = new Set(['talk', 'evening', 'quiet']);
-const VALID_LANGUAGES = new Set(['auto', 'ru', 'en']);
+const VALID_LANGUAGES = new Set(SUPPORTED_LANGUAGES);
 
 function bool(value, fallback = false) {
     if (value == null || value === '') return fallback;
@@ -34,7 +36,7 @@ function loadConfig(env = process.env) {
             apiKey: String(env.XAI_API_KEY || ''),
             realtimeUrl: String(env.XAI_REALTIME_URL || 'wss://api.x.ai/v1/realtime'),
             model: String(env.XAI_MODEL || 'grok-voice-latest'),
-            voice: String(env.XAI_VOICE || 'eve'),
+            voice: normalizeVoice(env.XAI_VOICE, 'eve'),
         },
     };
 
@@ -49,13 +51,14 @@ function loadConfig(env = process.env) {
     return config;
 }
 
-function normalizeSessionOptions(value = {}) {
+function normalizeSessionOptions(value = {}, { defaultVoice = 'eve' } = {}) {
     const mode = String(value.mode || 'talk').toLowerCase();
-    const language = String(value.language || value.lang || 'auto').toLowerCase();
+    const language = String(value.language || value.lang || 'ru').toLowerCase();
     return {
         adultConfirmed: value.adult_confirmed === true,
         mode: VALID_MODES.has(mode) ? mode : 'talk',
-        language: VALID_LANGUAGES.has(language) ? language : 'auto',
+        language: VALID_LANGUAGES.has(language) ? language : 'ru',
+        voice: normalizeVoice(value.voice, normalizeVoice(defaultVoice)),
         noSave: value.no_save !== false,
     };
 }

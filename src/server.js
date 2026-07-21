@@ -8,6 +8,7 @@ const path = require('path');
 const { loadConfig } = require('./config/env');
 const { createProvider } = require('./providers/createProvider');
 const { attachRealtimeServer } = require('./realtime/realtimeServer');
+const { SUPPORTED_LANGUAGES, FEMALE_VOICES, FEMALE_VOICE_IDS, PREVIEW_PHRASES } = require('./voiceCatalog');
 
 const MIME = {
     '.html': 'text/html; charset=utf-8',
@@ -28,12 +29,96 @@ function sendJson(response, status, body) {
     response.end(data);
 }
 
+function readJson(request, limit = 4096) {
+    return new Promise((resolve, reject) => {
+        const chunks = [];
+        let size = 0;
+        request.on('data', (chunk) => {
+            size += chunk.length;
+            if (size > limit) {
+                reject(Object.assign(new Error('request_too_large'), { code: 'request_too_large' }));
+                request.destroy();
+                return;
+            }
+            chunks.push(chunk);
+        });
+        request.on('end', () => {
+            try { resolve(JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}')); }
+            catch { reject(Object.assign(new Error('invalid_json'), { code: 'invalid_json' })); }
+        });
+        request.on('error', reject);
+    });
+}
+
+function clientAddress(request) {
+    return String(request.headers['x-forwarded-for'] || request.socket.remoteAddress || 'unknown').split(',')[0].trim();
+}
+
 function createServer({ env = process.env } = {}) {
     const config = loadConfig(env);
     const provider = createProvider(config);
     const publicRoot = path.resolve(__dirname, '..', 'public');
+    const previewCache = new Map();
+    const previewRate = new Map();
 
-    const server = http.createServer((request, response) => {
+    async function serveVoicePreview(request, response) {
+        if (config.provider !== 'xai') return sendJson(response, 503, { error: 'voice_preview_requires_xai' });
+        const now = Date.now();
+        const address = clientAddress(request);
+        const recent = (previewRate.get(address) || []).filter((time) => now - time < 60_000);
+        if (recent.length >= 12) return sendJson(response, 429, { error: 'voice_preview_rate_limited' });
+        recent.push(now);
+        previewRate.set(address, recent);
+
+        let body;
+        try { body = await readJson(request); }
+        catch (error) { return sendJson(response, error.code === 'request_too_large' ? 413 : 400, { error: error.code || 'invalid_request' }); }
+        const voice = String(body.voice || '').toLowerCase();
+        const language = String(body.language || '').toLowerCase();
+        if (!FEMALE_VOICE_IDS.has(voice) || !SUPPORTED_LANGUAGES.includes(language)) {
+            return sendJson(response, 400, { error: 'unsupported_voice_or_language' });
+        }
+
+        const cacheKey = `${voice}:${language}`;
+        let audio = previewCache.get(cacheKey);
+        if (!audio) {
+            let upstream;
+            try {
+                upstream = await fetch('https://api.x.ai/v1/tts', {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${config.xai.apiKey}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        text: PREVIEW_PHRASES[language],
+                        voice_id: voice,
+                        // xAI TTS does not currently document Romanian as an explicit language code.
+                        language: language === 'ro' ? 'auto' : language,
+                        output_format: { codec: 'mp3' },
+                    }),
+                    signal: AbortSignal.timeout(20_000),
+                });
+            } catch {
+                return sendJson(response, 502, { error: 'voice_preview_unavailable' });
+            }
+            if (!upstream.ok) return sendJson(response, 502, { error: 'voice_preview_provider_error' });
+            audio = Buffer.from(await upstream.arrayBuffer());
+            if (!audio.length || audio.length > 2 * 1024 * 1024) {
+                return sendJson(response, 502, { error: 'voice_preview_invalid_audio' });
+            }
+            previewCache.set(cacheKey, audio);
+        }
+        response.writeHead(200, {
+            'Content-Type': 'audio/mpeg',
+            'Content-Length': audio.length,
+            'Cache-Control': 'private, max-age=3600',
+            'X-Content-Type-Options': 'nosniff',
+        });
+        response.end(audio);
+    }
+
+    const server = http.createServer(async (request, response) => {
         const url = new URL(request.url, 'http://localhost');
         if (request.method === 'GET' && url.pathname === '/api/health') {
             return sendJson(response, 200, { ok: true, service: 'laura-realtime', provider: provider.name });
@@ -47,8 +132,12 @@ function createServer({ env = process.env } = {}) {
                 raw_audio_storage: false,
                 transcript_logging: config.allowTranscriptLogging,
                 modes: ['talk', 'evening', 'quiet'],
-                languages: ['auto', 'ru', 'en'],
+                languages: SUPPORTED_LANGUAGES,
+                voices: FEMALE_VOICES,
             });
+        }
+        if (request.method === 'POST' && url.pathname === '/api/voice-preview') {
+            return serveVoicePreview(request, response);
         }
         if (request.method !== 'GET' && request.method !== 'HEAD') {
             return sendJson(response, 405, { error: 'method_not_allowed' });

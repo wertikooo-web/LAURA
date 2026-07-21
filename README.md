@@ -12,7 +12,10 @@ any other project.
 - explicit 18+ confirmation;
 - push-to-start voice session with interruption support;
 - Talk, Evening, and Quiet modes;
-- Russian and English session preferences;
+- Russian, Romanian, English, and French interface and response preferences;
+- selectable built-in female xAI voices with short server-side previews;
+- amplitude-driven talking-lips animation during LAURA's audio playback;
+- in-page transcript clearing and a fixed, no-page-scroll layout;
 - privacy-first no-save mode (enabled by default);
 - provider boundary with `mock` and xAI Grok Voice Realtime implementations;
 - server-side provider authentication, so API keys never reach the browser;
@@ -47,7 +50,15 @@ XAI_VOICE=eve
 
 Restart the server. The browser sends microphone PCM frames only to this
 application's WebSocket; the backend proxies the session to xAI. The key stays
-server-side.
+server-side. Language and voice selectors are locked while a realtime session
+is connected; disconnect before changing either setting.
+
+Voice previews use xAI's paid TTS endpoint with a fixed short phrase. The
+server validates the requested female voice and language, rate-limits clients,
+and caches generated previews in memory. xAI currently documents Russian,
+English, and French TTS language codes. For Romanian preview the server uses
+automatic language detection; Romanian remains explicitly enforced in the
+realtime system instruction.
 
 ## Privacy behavior
 

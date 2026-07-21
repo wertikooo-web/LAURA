@@ -119,7 +119,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
 
         async function startSession(payload) {
             if (started) return fail('session_already_started', 'The session has already started.');
-            const options = normalizeSessionOptions(payload);
+            const options = normalizeSessionOptions(payload, { defaultVoice: providerMetadata.voice });
             if (!options.adultConfirmed) {
                 return fail('adult_confirmation_required', 'LAURA is available only after 18+ confirmation.', { close: true });
             }
@@ -135,6 +135,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
             providerSession = providerFactory({
                 systemInstructionText: prompt.text,
                 systemInstructionMeta: prompt.meta,
+                voice: options.voice,
             });
             try {
                 if (typeof providerSession.connect === 'function') await providerSession.connect(log);
@@ -146,7 +147,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
                 type: 'session.ready',
                 provider: providerMetadata.name,
                 model: providerMetadata.model,
-                voice: providerMetadata.voice,
+                voice: options.voice,
                 mode: options.mode,
                 language: options.language,
                 no_save: options.noSave,

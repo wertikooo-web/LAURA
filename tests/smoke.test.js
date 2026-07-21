@@ -60,6 +60,8 @@ test('HTTP and realtime mock smoke', async (t) => {
     assert.equal(config.adult_confirmation_required, true);
     assert.equal(config.raw_audio_storage, false);
     assert.equal(config.transcript_logging, false);
+    assert.deepEqual(config.languages, ['ru', 'ro', 'en', 'fr']);
+    assert.ok(config.voices.some((voice) => voice.id === 'eve'));
 
     const underAge = await openSocket(wsBase);
     await nextEvent(underAge, (event) => event.type === 'connection.ready');
@@ -75,11 +77,15 @@ test('HTTP and realtime mock smoke', async (t) => {
         adult_confirmed: true,
         sample_rate: 16000,
         mode: 'evening',
+        language: 'fr',
+        voice: 'luna',
         no_save: true,
     }));
     const ready = await nextEvent(adult, (event) => event.type === 'session.ready');
     assert.equal(ready.provider, 'mock');
     assert.equal(ready.no_save, true);
+    assert.equal(ready.language, 'fr');
+    assert.equal(ready.voice, 'luna');
     adult.send(JSON.stringify({ type: 'text.send', text: 'Сегодня был тяжёлый день.' }));
     const reply = await nextEvent(adult, (event) => event.type === 'transcript.model');
     assert.match(reply.text, /Сегодня был тяжёлый день/);

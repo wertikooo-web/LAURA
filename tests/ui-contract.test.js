@@ -12,17 +12,26 @@ const styles = fs.readFileSync(path.join(root, 'public', 'styles.css'), 'utf8');
 
 test('connection control is separate from the push-to-talk control', () => {
   assert.match(html, /<header[\s\S]*id="connectButton"[\s\S]*>CONNECT<\/button>/);
-  assert.match(html, /id="talkButton"[\s\S]*<strong>НАЧАТЬ РАЗГОВОР<\/strong>/);
-  assert.match(styles, /\.connection-button\s*\{/);
-  assert.match(styles, /\.talk-button\s*\{[^}]*display:\s*flex/);
+  assert.match(html, /id="talkButton"[\s\S]*data-i18n="talkButton"/);
+  assert.match(styles, /\.connection-button/);
+  assert.match(styles, /\.talk-button\{[^}]*display:flex/);
 });
 
 test('push-to-talk interrupts first, records while held, and commits on release', () => {
-  const start = app.indexOf("send({ type: 'session.interrupt', reason: 'user_started_speaking' });");
-  const audioStart = app.indexOf("send({ type: 'input_audio.start' });");
-  const release = app.indexOf("send({ type: 'input_audio.end' });");
+  const start = app.search(/send\(\{\s*type:\s*['"]session\.interrupt['"],\s*reason:\s*['"]user_started_speaking/);
+  const audioStart = app.search(/send\(\{\s*type:\s*['"]input_audio\.start/);
+  const release = app.search(/send\(\{\s*type:\s*['"]input_audio\.end/);
 
   assert.ok(start >= 0 && audioStart > start, 'interruption must precede new audio');
   assert.ok(release > audioStart, 'release must commit the captured audio');
-  assert.match(app, /if \(!state\.pressActive \|\| !state\.sessionReady\) return;/);
+  assert.match(app, /if\s*\(\s*!state\.pressActive\s*\|\|\s*!state\.sessionReady\s*\)\s*return/);
+});
+
+test('localized controls, clear action and talking lips are present', () => {
+  assert.match(html, /id="languageSelect"/);
+  assert.match(html, /id="voiceSelect"/);
+  assert.match(html, /id="clearButton"/);
+  assert.match(html, /class="mouth"/);
+  assert.match(styles, /overflow:hidden/);
+  assert.match(app, /getByteTimeDomainData/);
 });

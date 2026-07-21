@@ -61,7 +61,7 @@ class XaiVoiceProviderSession {
                     type: 'session.update',
                     session: {
                         instructions: this.options.systemInstructionText,
-                        voice: this.config.voice,
+                        voice: this.options.voice || this.config.voice,
                         turn_detection: null,
                         audio: {
                             input: {

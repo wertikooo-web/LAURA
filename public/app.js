@@ -1,295 +1,46 @@
 'use strict';
 
 const $ = (id) => document.getElementById(id);
-const state = {
-  config: null,
-  socket: null,
-  connected: false,
-  sessionReady: false,
-  mode: 'talk',
-  noSave: true,
-  holding: false,
-  pressActive: false,
-  micStream: null,
-  inputContext: null,
-  processor: null,
-  playbackContext: null,
-  playbackQueueTime: 0,
-  activeSources: [],
-  assistantLine: null,
+const COPY = {
+  ru: { privacy:'Privacy',preview:'Прослушать',presenceTitle:'Можно ничего<br>сейчас не решать.',modeTalk:'обычный разговор',modeEvening:'медленнее и тише',modeQuiet:'минимум слов',conversation:'Разговор',clear:'Очистить',messageLabel:'Сообщение',textPlaceholder:'Или напиши для теста…',talkButton:'НАЧАТЬ РАЗГОВОР',stop:'Остановить ответ',beforeStart:'ПЕРЕД НАЧАЛОМ',adultTitle:'LAURA: создана для взрослых',adultText:'Это голосовой AI-компаньон, а не врач, психотерапевт или живой человек. Разговоры могут касаться личных и интимных взрослых тем.',ageCheck:'Мне исполнилось 18 лет',continue:'Продолжить',ageFine:'Подтверждение в web-прототипе не является полноценной проверкой возраста для production.',privacyUpper:'ПРИВАТНОСТЬ',currentSession:'Текущая сессия',noSave:'Не сохранять разговор',noSaveHint:'В прототипе включено по умолчанию',privacyText:'Сырое аудио никогда не записывается на диск. Долгосрочная память пока отключена.',done:'Готово',empty:'Здесь появится текст текущего разговора. После закрытия страницы он не сохраняется.',you:'Ты',disconnected:'Не подключена',disconnectedHint:'Начни разговор, когда будешь готов.',connecting:'Подключаюсь',moment:'Один момент.',ready:'Я рядом',readyHint:'Удерживай кнопку и говори.',listening:'Слушаю',release:'Отпусти кнопку, когда закончишь.',thinking:'Думаю',interrupt:'Можно перебить меня новой репликой.',speaking:'Говорю',interruptHint:'Нажми и говори, чтобы перебить.',micError:'Нет доступа к микрофону',connectError:'Не удалось подключиться',connectErrorHint:'Проверь, запущен ли сервер.',failed:'Что-то прервалось',previewing:'Загрузка…',previewError:'Не удалось прослушать'},
+  ro: { privacy:'Confidențialitate',preview:'Ascultă',presenceTitle:'Nu trebuie să hotărăști<br>nimic acum.',modeTalk:'conversație normală',modeEvening:'mai lent și mai încet',modeQuiet:'cât mai puține cuvinte',conversation:'Conversație',clear:'Șterge',messageLabel:'Mesaj',textPlaceholder:'Sau scrie pentru test…',talkButton:'ÎNCEPE CONVERSAȚIA',stop:'Oprește răspunsul',beforeStart:'ÎNAINTE DE A ÎNCEPE',adultTitle:'LAURA: creată pentru adulți',adultText:'Acesta este un companion vocal AI, nu un medic, psihoterapeut sau om real. Conversațiile pot aborda subiecte personale și intime pentru adulți.',ageCheck:'Am împlinit 18 ani',continue:'Continuă',ageFine:'Confirmarea din prototipul web nu reprezintă o verificare completă a vârstei pentru producție.',privacyUpper:'CONFIDENȚIALITATE',currentSession:'Sesiunea curentă',noSave:'Nu salva conversația',noSaveHint:'Activat implicit în prototip',privacyText:'Audio brut nu este scris niciodată pe disc. Memoria pe termen lung este dezactivată.',done:'Gata',empty:'Aici va apărea textul conversației curente. Nu se salvează după închiderea paginii.',you:'Tu',disconnected:'Neconectată',disconnectedHint:'Începe conversația când ești pregătit.',connecting:'Mă conectez',moment:'O clipă.',ready:'Sunt aici',readyHint:'Ține apăsat butonul și vorbește.',listening:'Ascult',release:'Eliberează butonul când ai terminat.',thinking:'Mă gândesc',interrupt:'Mă poți întrerupe cu o replică nouă.',speaking:'Vorbesc',interruptHint:'Apasă și vorbește ca să mă întrerupi.',micError:'Microfonul nu este disponibil',connectError:'Conectarea a eșuat',connectErrorHint:'Verifică dacă serverul rulează.',failed:'Ceva s-a întrerupt',previewing:'Se încarcă…',previewError:'Previzualizarea nu a reușit'},
+  en: { privacy:'Privacy',preview:'Preview',presenceTitle:'Nothing needs to be<br>decided right now.',modeTalk:'normal conversation',modeEvening:'slower and softer',modeQuiet:'fewest words',conversation:'Conversation',clear:'Clear',messageLabel:'Message',textPlaceholder:'Or type a test message…',talkButton:'START CONVERSATION',stop:'Stop response',beforeStart:'BEFORE YOU BEGIN',adultTitle:'LAURA: made for adults',adultText:'This is an AI voice companion, not a doctor, psychotherapist, or real person. Conversations may include personal and intimate adult topics.',ageCheck:'I am 18 or older',continue:'Continue',ageFine:'Confirmation in this web prototype is not full production age verification.',privacyUpper:'PRIVACY',currentSession:'Current session',noSave:'Do not save conversation',noSaveHint:'Enabled by default in the prototype',privacyText:'Raw audio is never written to disk. Long-term memory is currently disabled.',done:'Done',empty:'The current conversation will appear here. It is not retained after the page is closed.',you:'You',disconnected:'Disconnected',disconnectedHint:'Start when you are ready.',connecting:'Connecting',moment:'One moment.',ready:'I am here',readyHint:'Hold the button and speak.',listening:'Listening',release:'Release the button when finished.',thinking:'Thinking',interrupt:'You can interrupt me with a new turn.',speaking:'Speaking',interruptHint:'Press and speak to interrupt.',micError:'Microphone unavailable',connectError:'Could not connect',connectErrorHint:'Check that the server is running.',failed:'Something was interrupted',previewing:'Loading…',previewError:'Preview failed'},
+  fr: { privacy:'Confidentialité',preview:'Écouter',presenceTitle:'Rien ne doit être<br>décidé maintenant.',modeTalk:'conversation normale',modeEvening:'plus lent et plus doux',modeQuiet:'un minimum de mots',conversation:'Conversation',clear:'Effacer',messageLabel:'Message',textPlaceholder:'Ou écris un message de test…',talkButton:'COMMENCER LA CONVERSATION',stop:'Arrêter la réponse',beforeStart:'AVANT DE COMMENCER',adultTitle:'LAURA : créée pour les adultes',adultText:'Ceci est une compagne vocale IA, pas un médecin, une psychothérapeute ou une personne réelle. Les conversations peuvent aborder des sujets personnels et intimes pour adultes.',ageCheck:'J’ai 18 ans ou plus',continue:'Continuer',ageFine:'La confirmation de ce prototype web ne constitue pas une vérification complète de l’âge en production.',privacyUpper:'CONFIDENTIALITÉ',currentSession:'Session actuelle',noSave:'Ne pas enregistrer la conversation',noSaveHint:'Activé par défaut dans le prototype',privacyText:'L’audio brut n’est jamais écrit sur le disque. La mémoire à long terme est désactivée.',done:'Terminé',empty:'Le texte de la conversation actuelle apparaîtra ici. Il ne sera pas conservé après la fermeture de la page.',you:'Vous',disconnected:'Déconnectée',disconnectedHint:'Commence quand tu es prêt.',connecting:'Connexion',moment:'Un instant.',ready:'Je suis là',readyHint:'Maintiens le bouton et parle.',listening:'J’écoute',release:'Relâche le bouton quand tu as fini.',thinking:'Je réfléchis',interrupt:'Tu peux m’interrompre avec une nouvelle phrase.',speaking:'Je parle',interruptHint:'Appuie et parle pour m’interrompre.',micError:'Microphone indisponible',connectError:'Connexion impossible',connectErrorHint:'Vérifie que le serveur fonctionne.',failed:'Quelque chose a été interrompu',previewing:'Chargement…',previewError:'Échec de l’écoute'},
 };
 
-function setPresence(next, label, hint) {
-  $('presence').dataset.state = next;
-  $('statusLabel').textContent = label;
-  if (hint) $('statusHint').textContent = hint;
+const state = { config:null,socket:null,sessionReady:false,mode:'talk',language:localStorage.getItem('laura_language')||'ru',voice:localStorage.getItem('laura_voice')||'eve',noSave:true,holding:false,pressActive:false,micStream:null,inputContext:null,processor:null,playbackContext:null,playbackQueueTime:0,playbackAnalyser:null,mouthFrame:0,mouthData:null,responseAudioEnded:true,activeSources:[],assistantLine:null,previewAudio:null };
+const t = (key) => COPY[state.language]?.[key] || COPY.ru[key] || key;
+
+function setPresence(next, labelKey, hintKey) { $('presence').dataset.state=next; $('statusLabel').textContent=t(labelKey); if(hintKey) $('statusHint').textContent=t(hintKey); }
+function renderEmpty(){ if(!$('transcript').children.length){ const p=document.createElement('p');p.className='empty';p.textContent=t('empty');$('transcript').append(p); } }
+function applyLocale(){ document.documentElement.lang=state.language; document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t(el.dataset.i18n);}); document.querySelectorAll('[data-i18n-html]').forEach(el=>{el.innerHTML=t(el.dataset.i18nHtml);}); document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{el.placeholder=t(el.dataset.i18nPlaceholder);}); const empty=$('transcript').querySelector('.empty');if(empty)empty.textContent=t('empty'); if(!state.sessionReady)setPresence('idle','disconnected','disconnectedHint'); }
+function setSelectorsDisabled(disabled){ $('languageSelect').disabled=disabled;$('voiceSelect').disabled=disabled; }
+function send(payload){ if(state.socket?.readyState===WebSocket.OPEN)state.socket.send(JSON.stringify(payload)); }
+function setConnectionState(value){ const b=$('connectButton');b.dataset.state=value;b.textContent=value==='connected'?'DISCONNECT':value==='connecting'?'CONNECTING…':'CONNECT';b.setAttribute('aria-pressed',String(value!=='disconnected')); }
+
+function addTranscript(role,text,{delta=false}={}){ if(!text)return;const box=$('transcript');box.querySelector('.empty')?.remove();if(delta&&state.assistantLine){state.assistantLine.querySelector('span').textContent+=text;}else{const line=document.createElement('p');line.className=`line ${role}`;const title=document.createElement('strong');title.textContent=role==='user'?t('you'):'LAURA';const body=document.createElement('span');body.textContent=text;line.append(title,body);box.append(line);if(role==='assistant')state.assistantLine=line;}box.scrollTop=box.scrollHeight; }
+function clearChat(){ $('transcript').replaceChildren();state.assistantLine=null;renderEmpty(); }
+
+function stopLipSync(){ if(state.mouthFrame)cancelAnimationFrame(state.mouthFrame);state.mouthFrame=0;$('presence').style.setProperty('--mouth-open','0'); }
+function startLipSync(){ if(state.mouthFrame||!state.playbackAnalyser)return;const tick=()=>{if(!$('presence').isConnected)return stopLipSync();state.playbackAnalyser.getByteTimeDomainData(state.mouthData);let sum=0;for(const value of state.mouthData){const n=(value-128)/128;sum+=n*n;}const rms=Math.sqrt(sum/state.mouthData.length);const level=Math.min(1,Math.max(.08,(rms-.008)*13));$('presence').style.setProperty('--mouth-open',level.toFixed(3));state.mouthFrame=requestAnimationFrame(tick);};tick(); }
+function finishAudioIfDone(){ if(!state.activeSources.length&&state.responseAudioEnded){stopLipSync();$('stopButton').disabled=true;if(state.sessionReady)setPresence('idle','ready','readyHint');} }
+function clearPlayback(){ for(const source of state.activeSources){try{source.onended=null;source.stop();}catch{}}state.activeSources=[];state.responseAudioEnded=true;state.playbackQueueTime=state.playbackContext?.currentTime||0;stopLipSync(); }
+function decodeBase64(value){const binary=atob(value);const bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i+=1)bytes[i]=binary.charCodeAt(i);return bytes;}
+function ensurePlaybackGraph(){ const context=state.playbackContext;if(state.playbackAnalyser)return;state.playbackAnalyser=context.createAnalyser();state.playbackAnalyser.fftSize=256;state.playbackAnalyser.smoothingTimeConstant=.38;state.mouthData=new Uint8Array(state.playbackAnalyser.fftSize);state.playbackAnalyser.connect(context.destination); }
+function scheduleAudio(buffer){const context=state.playbackContext;ensurePlaybackGraph();const source=context.createBufferSource();source.buffer=buffer;source.connect(state.playbackAnalyser);const startAt=Math.max(context.currentTime,state.playbackQueueTime);source.start(startAt);state.playbackQueueTime=startAt+buffer.duration;state.activeSources.push(source);source.onended=()=>{state.activeSources=state.activeSources.filter(item=>item!==source);finishAudioIfDone();};startLipSync();}
+async function playAudioChunk(payload){state.playbackContext||=new(window.AudioContext||window.webkitAudioContext)();await state.playbackContext.resume();const bytes=decodeBase64(payload.audio_base64);if(payload.mime_type==='audio/wav'){const copy=bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength);try{scheduleAudio(await state.playbackContext.decodeAudioData(copy));}catch{}return;}const sampleRate=Number((payload.mime_type||'').match(/rate=(\d+)/)?.[1]||24000);const samples=Math.floor(bytes.byteLength/2);const buffer=state.playbackContext.createBuffer(1,samples,sampleRate);const output=buffer.getChannelData(0);const view=new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength);for(let i=0;i<samples;i+=1)output[i]=view.getInt16(i*2,true)/32768;scheduleAudio(buffer);}
+
+async function ensureMic(){if(state.micStream)return;state.micStream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:false}});state.inputContext||=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});await state.inputContext.resume();const source=state.inputContext.createMediaStreamSource(state.micStream);state.processor=state.inputContext.createScriptProcessor(2048,1,1);state.processor.onaudioprocess=event=>{if(!state.holding||state.socket?.readyState!==WebSocket.OPEN)return;const input=event.inputBuffer.getChannelData(0);const pcm=new Int16Array(input.length);for(let i=0;i<input.length;i+=1){const sample=Math.max(-1,Math.min(1,input[i]));pcm[i]=sample<0?sample*0x8000:sample*0x7fff;}state.socket.send(pcm.buffer);};source.connect(state.processor);state.processor.connect(state.inputContext.destination);}
+async function startTurn(event){event?.preventDefault();if(!state.sessionReady||state.holding)return;state.pressActive=true;event?.currentTarget?.setPointerCapture?.(event.pointerId);clearPlayback();state.assistantLine=null;send({type:'session.interrupt',reason:'user_started_speaking'});try{await ensureMic();if(!state.pressActive||!state.sessionReady)return;state.holding=true;$('talkButton').classList.add('recording');setPresence('listening','listening','release');send({type:'input_audio.start'});}catch(error){state.pressActive=false;setPresence('idle','micError');$('statusHint').textContent=error.message;}}
+function endTurn(event){event?.preventDefault();state.pressActive=false;if(!state.holding)return;state.holding=false;$('talkButton').classList.remove('recording');setPresence('thinking','thinking','interrupt');send({type:'input_audio.end'});}
+
+function handleEvent(payload){switch(payload.type){case'connection.ready':send({type:'session.start',adult_confirmed:localStorage.getItem('laura_adult_confirmed')==='yes',mode:state.mode,language:state.language,voice:state.voice,no_save:state.noSave,sample_rate:state.inputContext?.sampleRate||48000});break;case'session.ready':state.sessionReady=true;setConnectionState('connected');setSelectorsDisabled(true);$('talkButton').disabled=false;$('talkButton').classList.add('ready');$('providerLabel').textContent=`${payload.provider} · ${payload.voice}`;setPresence('idle','ready','readyHint');break;case'response.created':state.responseAudioEnded=false;setPresence('thinking','thinking');break;case'audio.start':case'audio.chunk':state.responseAudioEnded=false;setPresence('speaking','speaking','interruptHint');$('stopButton').disabled=false;if(payload.type==='audio.chunk')playAudioChunk(payload);break;case'audio.end':state.responseAudioEnded=true;state.assistantLine=null;finishAudioIfDone();break;case'transcript.user':if(payload.cumulative){const existing=$('transcript').querySelector('.line.user:last-of-type span');if(existing)existing.textContent=payload.text;else addTranscript('user',payload.text);}else addTranscript('user',payload.text);break;case'transcript.model.delta':addTranscript('assistant',payload.text,{delta:true});break;case'transcript.model':if(!state.assistantLine)addTranscript('assistant',payload.text);else if(payload.text&&state.assistantLine.querySelector('span').textContent!==payload.text)state.assistantLine.querySelector('span').textContent=payload.text;break;case'response.cancelled':clearPlayback();$('stopButton').disabled=true;setPresence(state.holding?'listening':'idle',state.holding?'listening':'ready',state.holding?'release':'readyHint');break;case'error':case'provider.error':setPresence('idle','failed');$('statusHint').textContent=payload.message||payload.code;break;default:break;}}
+async function connect(){if(state.socket){send({type:'session.stop'});state.socket.close();return;}state.inputContext||=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});const protocol=location.protocol==='https:'?'wss:':'ws:';const socket=new WebSocket(`${protocol}//${location.host}/realtime`);state.socket=socket;setConnectionState('connecting');socket.binaryType='arraybuffer';setPresence('thinking','connecting','moment');socket.onmessage=event=>{if(typeof event.data==='string'){try{handleEvent(JSON.parse(event.data));}catch{}}};socket.onclose=()=>{state.socket=null;state.sessionReady=false;state.holding=false;state.pressActive=false;clearPlayback();setConnectionState('disconnected');setSelectorsDisabled(false);$('talkButton').disabled=true;$('talkButton').classList.remove('ready','recording');$('stopButton').disabled=true;setPresence('idle','disconnected','disconnectedHint');};socket.onerror=()=>setPresence('idle','connectError','connectErrorHint');}
+
+async function previewVoice(){if(state.previewAudio){state.previewAudio.pause();state.previewAudio=null;}const button=$('previewButton');button.disabled=true;button.textContent=t('previewing');try{const response=await fetch('/api/voice-preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({voice:state.voice,language:state.language})});if(!response.ok)throw new Error('preview');const url=URL.createObjectURL(await response.blob());const audio=new Audio(url);state.previewAudio=audio;audio.onended=()=>{URL.revokeObjectURL(url);state.previewAudio=null;};audio.onerror=()=>URL.revokeObjectURL(url);await audio.play();}catch{$('statusHint').textContent=t('previewError');}finally{button.disabled=false;button.textContent=t('preview');}}
+
+async function init(){try{state.config=await fetch('/api/config',{cache:'no-store'}).then(r=>r.json());if(!state.config.languages.includes(state.language))state.language='ru';if(!state.config.voices.some(v=>v.id===state.voice))state.voice=state.config.voice;$('voiceSelect').replaceChildren(...state.config.voices.map(v=>{const o=document.createElement('option');o.value=v.id;o.textContent=v.label;return o;}));$('voiceSelect').value=state.voice;$('languageSelect').value=state.language;$('providerLabel').textContent=`${state.config.provider} · ${state.voice}`;}catch{$('providerLabel').textContent='provider unavailable';}
+  applyLocale();renderEmpty();const gate=$('ageGate');if(localStorage.getItem('laura_adult_confirmed')!=='yes')gate.showModal();$('ageCheckbox').addEventListener('change',()=>{$('ageContinue').disabled=!$('ageCheckbox').checked;});$('ageContinue').addEventListener('click',()=>localStorage.setItem('laura_adult_confirmed','yes'));gate.addEventListener('cancel',e=>e.preventDefault());$('privacyButton').addEventListener('click',()=>$('privacyDialog').showModal());$('noSaveToggle').addEventListener('change',e=>{state.noSave=e.target.checked;});$('languageSelect').addEventListener('change',e=>{state.language=e.target.value;localStorage.setItem('laura_language',state.language);applyLocale();});$('voiceSelect').addEventListener('change',e=>{state.voice=e.target.value;localStorage.setItem('laura_voice',state.voice);$('providerLabel').textContent=`${state.config?.provider||'provider'} · ${state.voice}`;});$('previewButton').addEventListener('click',previewVoice);$('clearButton').addEventListener('click',clearChat);
+  document.querySelectorAll('.mode').forEach(button=>button.addEventListener('click',()=>{if(state.sessionReady)return;state.mode=button.dataset.mode;document.querySelectorAll('.mode').forEach(item=>item.classList.toggle('active',item===button));}));$('connectButton').addEventListener('click',connect);const talk=$('talkButton');talk.addEventListener('pointerdown',startTurn);talk.addEventListener('pointerup',endTurn);talk.addEventListener('pointercancel',endTurn);talk.addEventListener('pointerleave',endTurn);$('stopButton').addEventListener('click',()=>{clearPlayback();send({type:'session.interrupt',reason:'stop_button'});});$('textForm').addEventListener('submit',event=>{event.preventDefault();const text=$('textInput').value.trim();if(!text||!state.sessionReady)return;clearPlayback();state.assistantLine=null;send({type:'text.send',text});$('textInput').value='';setPresence('thinking','thinking');});
 }
-
-function send(payload) {
-  if (state.socket?.readyState === WebSocket.OPEN) state.socket.send(JSON.stringify(payload));
-}
-
-function setConnectionState(connectionState) {
-  const button = $('connectButton');
-  button.dataset.state = connectionState;
-  button.textContent = connectionState === 'connected'
-    ? 'DISCONNECT'
-    : connectionState === 'connecting' ? 'CONNECTING…' : 'CONNECT';
-  button.setAttribute('aria-pressed', String(connectionState !== 'disconnected'));
-}
-
-function addTranscript(role, text, { delta = false } = {}) {
-  if (!text) return;
-  const box = $('transcript');
-  box.querySelector('.empty')?.remove();
-  if (delta && state.assistantLine) {
-    state.assistantLine.querySelector('span').textContent += text;
-  } else {
-    const line = document.createElement('p');
-    line.className = `line ${role}`;
-    const title = document.createElement('strong');
-    title.textContent = role === 'user' ? 'Ты' : 'LAURA';
-    const body = document.createElement('span');
-    body.textContent = text;
-    line.append(title, body);
-    box.append(line);
-    if (role === 'assistant') state.assistantLine = line;
-  }
-  box.scrollTop = box.scrollHeight;
-}
-
-function clearPlayback() {
-  for (const source of state.activeSources) {
-    try { source.onended = null; source.stop(); } catch { /* already ended */ }
-  }
-  state.activeSources = [];
-  state.playbackQueueTime = state.playbackContext?.currentTime || 0;
-}
-
-function decodeBase64(value) {
-  const binary = atob(value);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-  return bytes;
-}
-
-function scheduleAudio(buffer) {
-  const context = state.playbackContext;
-  const source = context.createBufferSource();
-  source.buffer = buffer;
-  source.connect(context.destination);
-  const startAt = Math.max(context.currentTime, state.playbackQueueTime);
-  source.start(startAt);
-  state.playbackQueueTime = startAt + buffer.duration;
-  state.activeSources.push(source);
-  source.onended = () => { state.activeSources = state.activeSources.filter((item) => item !== source); };
-}
-
-async function playAudioChunk(payload) {
-  state.playbackContext ||= new (window.AudioContext || window.webkitAudioContext)();
-  await state.playbackContext.resume();
-  const bytes = decodeBase64(payload.audio_base64);
-  if (payload.mime_type === 'audio/wav') {
-    const copy = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
-    try { scheduleAudio(await state.playbackContext.decodeAudioData(copy)); } catch { /* ignore mock decode failures */ }
-    return;
-  }
-  const sampleRate = Number((payload.mime_type || '').match(/rate=(\d+)/)?.[1] || 24000);
-  const samples = Math.floor(bytes.byteLength / 2);
-  const buffer = state.playbackContext.createBuffer(1, samples, sampleRate);
-  const output = buffer.getChannelData(0);
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  for (let index = 0; index < samples; index += 1) output[index] = view.getInt16(index * 2, true) / 32768;
-  scheduleAudio(buffer);
-}
-
-async function ensureMic() {
-  if (state.micStream) return;
-  state.micStream = await navigator.mediaDevices.getUserMedia({
-    audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: false },
-  });
-  state.inputContext ||= new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-  await state.inputContext.resume();
-  const source = state.inputContext.createMediaStreamSource(state.micStream);
-  state.processor = state.inputContext.createScriptProcessor(2048, 1, 1);
-  state.processor.onaudioprocess = (event) => {
-    if (!state.holding || state.socket?.readyState !== WebSocket.OPEN) return;
-    const input = event.inputBuffer.getChannelData(0);
-    const pcm = new Int16Array(input.length);
-    for (let i = 0; i < input.length; i += 1) {
-      const sample = Math.max(-1, Math.min(1, input[i]));
-      pcm[i] = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
-    }
-    state.socket.send(pcm.buffer);
-  };
-  source.connect(state.processor);
-  state.processor.connect(state.inputContext.destination);
-}
-
-async function startTurn(event) {
-  event?.preventDefault();
-  if (!state.sessionReady || state.holding) return;
-  state.pressActive = true;
-  event?.currentTarget?.setPointerCapture?.(event.pointerId);
-  clearPlayback();
-  state.assistantLine = null;
-  send({ type: 'session.interrupt', reason: 'user_started_speaking' });
-  try {
-    await ensureMic();
-    if (!state.pressActive || !state.sessionReady) return;
-    state.holding = true;
-    $('talkButton').classList.add('recording');
-    setPresence('listening', 'Слушаю', 'Отпусти кнопку, когда закончишь.');
-    send({ type: 'input_audio.start' });
-  } catch (error) {
-    state.pressActive = false;
-    setPresence('idle', 'Нет доступа к микрофону', error.message);
-  }
-}
-
-function endTurn(event) {
-  event?.preventDefault();
-  state.pressActive = false;
-  if (!state.holding) return;
-  state.holding = false;
-  $('talkButton').classList.remove('recording');
-  setPresence('thinking', 'Думаю', 'Можно перебить меня новой репликой.');
-  send({ type: 'input_audio.end' });
-}
-
-function handleEvent(payload) {
-  switch (payload.type) {
-  case 'connection.ready':
-    send({
-      type: 'session.start',
-      adult_confirmed: localStorage.getItem('laura_adult_confirmed') === 'yes',
-      mode: state.mode,
-      language: 'auto',
-      no_save: state.noSave,
-      sample_rate: state.inputContext?.sampleRate || 48000,
-    });
-    break;
-  case 'session.ready':
-    state.sessionReady = true;
-    setConnectionState('connected');
-    $('talkButton').disabled = false;
-    $('talkButton').classList.add('ready');
-    $('providerLabel').textContent = `${payload.provider} · ${payload.voice}`;
-    setPresence('idle', 'Я рядом', 'Удерживай кнопку и говори.');
-    break;
-  case 'response.created': setPresence('thinking', 'Думаю'); break;
-  case 'audio.start':
-  case 'audio.chunk':
-    setPresence('speaking', 'Говорю', 'Нажми и говори, чтобы перебить.');
-    $('stopButton').disabled = false;
-    if (payload.type === 'audio.chunk') playAudioChunk(payload);
-    break;
-  case 'audio.end':
-    $('stopButton').disabled = true;
-    state.assistantLine = null;
-    setPresence('idle', 'Я рядом', 'Удерживай кнопку, когда захочешь ответить.');
-    break;
-  case 'transcript.user':
-    if (payload.cumulative) {
-      const existing = $('transcript').querySelector('.line.user:last-of-type span');
-      if (existing) existing.textContent = payload.text;
-      else addTranscript('user', payload.text);
-    } else addTranscript('user', payload.text);
-    break;
-  case 'transcript.model.delta': addTranscript('assistant', payload.text, { delta: true }); break;
-  case 'transcript.model':
-    if (!state.assistantLine) addTranscript('assistant', payload.text);
-    else if (payload.text && state.assistantLine.querySelector('span').textContent !== payload.text) {
-      state.assistantLine.querySelector('span').textContent = payload.text;
-    }
-    break;
-  case 'response.cancelled':
-    clearPlayback();
-    $('stopButton').disabled = true;
-    setPresence(state.holding ? 'listening' : 'idle', state.holding ? 'Слушаю' : 'Я рядом');
-    break;
-  case 'error':
-  case 'provider.error':
-    setPresence('idle', 'Что-то прервалось', payload.message || payload.code);
-    break;
-  default: break;
-  }
-}
-
-async function connect() {
-  if (state.socket) {
-    send({ type: 'session.stop' });
-    state.socket.close();
-    return;
-  }
-  state.inputContext ||= new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const socket = new WebSocket(`${protocol}//${location.host}/realtime`);
-  state.socket = socket;
-  setConnectionState('connecting');
-  socket.binaryType = 'arraybuffer';
-  setPresence('thinking', 'Подключаюсь', 'Один момент.');
-  socket.onopen = () => { state.connected = true; };
-  socket.onmessage = (event) => {
-    if (typeof event.data !== 'string') return;
-    try { handleEvent(JSON.parse(event.data)); } catch { /* ignore malformed events */ }
-  };
-  socket.onclose = () => {
-    state.socket = null;
-    state.connected = false;
-    state.sessionReady = false;
-    state.holding = false;
-    state.pressActive = false;
-    clearPlayback();
-    setConnectionState('disconnected');
-    $('talkButton').disabled = true;
-    $('talkButton').classList.remove('ready', 'recording');
-    $('stopButton').disabled = true;
-    setPresence('idle', 'Не подключена', 'Начни разговор, когда будешь готов.');
-  };
-  socket.onerror = () => setPresence('idle', 'Не удалось подключиться', 'Проверь, запущен ли сервер.');
-}
-
-async function init() {
-  try {
-    state.config = await fetch('/api/config', { cache: 'no-store' }).then((response) => response.json());
-    $('providerLabel').textContent = `${state.config.provider} · ${state.config.voice}`;
-  } catch { $('providerLabel').textContent = 'provider unavailable'; }
-
-  const gate = $('ageGate');
-  if (localStorage.getItem('laura_adult_confirmed') !== 'yes') gate.showModal();
-  $('ageCheckbox').addEventListener('change', () => { $('ageContinue').disabled = !$('ageCheckbox').checked; });
-  $('ageContinue').addEventListener('click', () => localStorage.setItem('laura_adult_confirmed', 'yes'));
-  gate.addEventListener('cancel', (event) => event.preventDefault());
-
-  $('privacyButton').addEventListener('click', () => $('privacyDialog').showModal());
-  $('noSaveToggle').addEventListener('change', (event) => { state.noSave = event.target.checked; });
-  document.querySelectorAll('.mode').forEach((button) => button.addEventListener('click', () => {
-    if (state.sessionReady) return;
-    state.mode = button.dataset.mode;
-    document.querySelectorAll('.mode').forEach((item) => item.classList.toggle('active', item === button));
-  }));
-
-  $('connectButton').addEventListener('click', connect);
-  const talk = $('talkButton');
-  talk.addEventListener('pointerdown', startTurn);
-  talk.addEventListener('pointerup', endTurn);
-  talk.addEventListener('pointercancel', endTurn);
-  talk.addEventListener('pointerleave', endTurn);
-  $('stopButton').addEventListener('click', () => {
-    clearPlayback();
-    send({ type: 'session.interrupt', reason: 'stop_button' });
-  });
-  $('textForm').addEventListener('submit', (event) => {
-    event.preventDefault();
-    const text = $('textInput').value.trim();
-    if (!text || !state.sessionReady) return;
-    clearPlayback();
-    state.assistantLine = null;
-    send({ type: 'text.send', text });
-    $('textInput').value = '';
-    setPresence('thinking', 'Думаю');
-  });
-}
-
 init();

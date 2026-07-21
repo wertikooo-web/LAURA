@@ -18,7 +18,13 @@ test('prompt assembly makes mode and privacy explicit', () => {
     assert.match(prompt.text, /\[CURRENT CONTEXT\]/);
     assert.match(prompt.text, new RegExp(MODE_INSTRUCTIONS.evening.slice(0, 20)));
     assert.match(prompt.text, /NO-SAVE/);
-    assert.match(prompt.text, /Говори по-русски/);
+    assert.match(prompt.text, /исключительно на русском языке/);
     assert.ok(prompt.meta.promptChars > CORE_PERSONA_PROMPT.length);
     assert.equal(prompt.meta.promptHash.length, 12);
+});
+
+test('all interface languages are enforced in the realtime prompt', () => {
+    assert.match(buildRealtimeSystemInstruction({ language: 'ro' }).text, /limba română/);
+    assert.match(buildRealtimeSystemInstruction({ language: 'en' }).text, /exclusively in English/);
+    assert.match(buildRealtimeSystemInstruction({ language: 'fr' }).text, /exclusivement en français/);
 });
