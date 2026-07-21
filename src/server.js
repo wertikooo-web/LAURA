@@ -15,6 +15,8 @@ const {
 } = require('./config/env');
 const { createProvider } = require('./providers/createProvider');
 const { attachRealtimeServer } = require('./realtime/realtimeServer');
+const { createMemoryStore } = require('./memory/memoryStore');
+const { createMemoryApi } = require('./memory/memoryApi');
 const { SUPPORTED_LANGUAGES, FEMALE_VOICES, FEMALE_VOICE_IDS, PREVIEW_PHRASES } = require('./voiceCatalog');
 
 const MIME = {
@@ -61,9 +63,11 @@ function clientAddress(request) {
     return String(request.headers['x-forwarded-for'] || request.socket.remoteAddress || 'unknown').split(',')[0].trim();
 }
 
-function createServer({ env = process.env } = {}) {
+function createServer({ env = process.env, memoryStore: providedMemoryStore } = {}) {
     const config = loadConfig(env);
     const provider = createProvider(config);
+    const memoryStore = providedMemoryStore || createMemoryStore(config);
+    const handleMemoryApi = createMemoryApi({ memoryStore, sendJson, readJson });
     const publicRoot = path.resolve(__dirname, '..', 'public');
     const previewCache = new Map();
     const previewRate = new Map();
@@ -132,6 +136,7 @@ function createServer({ env = process.env } = {}) {
 
     const server = http.createServer(async (request, response) => {
         const url = new URL(request.url, 'http://localhost');
+        if (await handleMemoryApi(request, response, url)) return;
         if (request.method === 'GET' && url.pathname === '/api/health') {
             return sendJson(response, 200, { ok: true, service: 'laura-realtime', provider: provider.name });
         }
@@ -150,6 +155,8 @@ function createServer({ env = process.env } = {}) {
                 speech_speed_range: { min: MIN_SPEECH_SPEED, max: MAX_SPEECH_SPEED },
                 languages: SUPPORTED_LANGUAGES,
                 voices: FEMALE_VOICES,
+                memory_available: memoryStore.available,
+                memory_persistence: memoryStore.persistence,
             });
         }
         if (request.method === 'POST' && url.pathname === '/api/voice-preview') {
@@ -183,8 +190,10 @@ function createServer({ env = process.env } = {}) {
         providerFactory: provider.createSession,
         providerMetadata: provider,
         allowTranscriptLogging: config.allowTranscriptLogging,
+        memoryStore,
     });
-    return { server, config, provider };
+    server.on('close', () => memoryStore.close?.().catch?.(() => {}));
+    return { server, config, provider, memoryStore };
 }
 
 if (require.main === module) {

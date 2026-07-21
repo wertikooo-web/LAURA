@@ -37,7 +37,7 @@
     <section class="selectors" aria-label="Session settings">
       <label><span>Language</span><select id="languageSelect"><option value="ru">Russian</option><option value="ro">Romanian</option><option value="en">English</option><option value="fr">French</option></select></label>
       <label><span>Voice</span><select id="voiceSelect"></select></label>
-      <label><span>Adult style</span><select id="adultModeSelect"><option value="warm">Warm</option><option value="flirty">Flirty</option><option value="sensual">Sensual</option><option value="direct">Direct</option></select></label>
+      <label><span>Adult</span><select id="adultModeSelect"><option value="warm">Warm</option><option value="flirty">Flirty</option><option value="sensual">Sensual</option><option value="direct">+</option></select></label>
       <label><span>Speed</span><select id="speechSpeedSelect"><option value="0.72">Very slow</option><option value="0.8" selected>Slow</option><option value="0.9">Natural</option><option value="1">Normal</option></select></label>
       <label class="expression-setting"><span>Expression</span><select id="voiceExpressionSelect"><option value="calm">Calm</option><option value="alive" selected>Alive</option><option value="passionate">Passionate</option></select></label>
       <button id="previewButton" class="preview-button" type="button" data-i18n="preview">Preview</button>
@@ -75,7 +75,16 @@
     <form method="dialog" class="gate-card">
       <p class="eyebrow" data-i18n="privacyUpper">ПРИВАТНОСТЬ</p><h2 data-i18n="currentSession">Текущая сессия</h2>
       <label class="toggle-row"><span><strong data-i18n="noSave">Не сохранять разговор</strong><small data-i18n="noSaveHint">В прототипе включено по умолчанию</small></span><input id="noSaveToggle" type="checkbox" checked></label>
-      <p data-i18n="privacyText">Сырое аудио никогда не записывается на диск. Долгосрочная память пока отключена.</p>
+      <p id="privacyText">Сырое аудио никогда не записывается на диск. Память включается только с вашего согласия.</p>
+      <section class="memory-panel" aria-labelledby="memoryTitle">
+        <div class="memory-heading"><strong id="memoryTitle">Память LAURA</strong><span id="memoryStatus"></span></div>
+        <label class="toggle-row memory-toggle"><span><strong id="memoryEnableLabel">Разрешить долгосрочную память</strong><small id="memoryEnableHint">Работает, когда «Не сохранять разговор» выключено</small></span><input id="memoryEnabledToggle" type="checkbox"></label>
+        <div id="memoryEditor" class="memory-editor">
+          <div class="memory-add"><input id="memoryInput" maxlength="500" placeholder="Что LAURA должна помнить"><button id="memoryAddButton" type="button">Запомнить</button></div>
+          <div id="memoryList" class="memory-list"></div>
+          <button id="memoryClearButton" class="memory-clear" type="button">Удалить всю память</button>
+        </div>
+      </section>
       <button class="secondary-button" value="close" data-i18n="done">Готово</button>
     </form>
   </dialog>

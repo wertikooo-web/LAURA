@@ -25,9 +25,9 @@ any other project.
 - no raw-audio storage and no transcript logging by default.
 
 This stage validates voice, latency, turn-taking, personality, and willingness
-to start a second conversation. It does not pretend that hardware sensors,
-durable memory, a native mobile app, or production age verification already
-exist.
+to start a second conversation. Memory is now an explicit, inspectable MVP;
+hardware sensors, a native mobile app, account identity, and production age
+verification do not yet exist.
 
 ## Local start
 
@@ -87,8 +87,16 @@ realtime system instruction.
 - no-save is enabled by default;
 - transcript text is not written to application logs unless
   `ALLOW_TRANSCRIPT_LOGGING=true` is deliberately configured;
-- durable memory is deferred until users can inspect and delete every saved
-  fact and the implementation can prove that no-save is respected.
+- long-term memory is opt-in, inspectable, editable, and deletable;
+- the temporary identity is one browser-local device UUID;
+- no-save prevents stored memory from entering a realtime session.
+
+## Memory storage
+
+Local development stores approved memory in `.data/memory.json`. Production
+requires PostgreSQL through `DATABASE_URL`; run `npm run db:migrate` once before
+enabling memory. Without PostgreSQL, production reports memory as unavailable
+instead of using Railway's ephemeral filesystem. See `docs/MEMORY_POLICY.md`.
 
 ## Tests
 

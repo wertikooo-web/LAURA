@@ -29,5 +29,8 @@ run inside, or depend on WINE AI, Lunara, or any sibling repository.
 ## Changes and verification
 
 - Preserve unrelated work and secrets.
-- Do not deploy, push, or change cloud configuration without explicit approval.
+- For this LAURA repository only, once a requested task is complete and verified,
+  the user has pre-approved `commit -> push -> Railway deploy` ("КПД") without a
+  separate confirmation. This does not authorize unrelated cloud configuration,
+  database provisioning, migrations against production, or work in other repos.
 - Run `npm test` and `npm run test:smoke` before finishing a development stage.

@@ -43,6 +43,9 @@ function loadConfig(env = process.env) {
         port: int(env.PORT, 3000, { min: 1, max: 65535 }),
         provider,
         allowTranscriptLogging: bool(env.ALLOW_TRANSCRIPT_LOGGING, false),
+        nodeEnv: String(env.NODE_ENV || 'development').toLowerCase(),
+        databaseUrl: String(env.DATABASE_URL || ''),
+        memoryFilePath: String(env.MEMORY_FILE_PATH || ''),
         xai: {
             apiKey: String(env.XAI_API_KEY || ''),
             realtimeUrl: String(env.XAI_REALTIME_URL || 'wss://api.x.ai/v1/realtime'),
@@ -76,6 +79,7 @@ function normalizeSessionOptions(value = {}, { defaultVoice = 'eve' } = {}) {
         language: VALID_LANGUAGES.has(language) ? language : 'ru',
         voice: normalizeVoice(value.voice, normalizeVoice(defaultVoice)),
         noSave: value.no_save !== false,
+        deviceId: String(value.device_id || value.deviceId || ''),
     };
 }
 

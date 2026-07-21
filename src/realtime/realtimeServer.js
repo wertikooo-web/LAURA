@@ -10,6 +10,7 @@ const {
 } = require('./wsProtocol');
 const { buildRealtimeSystemInstruction } = require('./realtimePrompt');
 const { resolveInputSampleRate, createInputResampler } = require('./inputAudioResampling');
+const { validateDeviceId, formatMemoryContext } = require('../memory/memoryStore');
 const {
     normalizeSessionOptions,
     VALID_MODES,
@@ -24,7 +25,7 @@ function id(prefix) {
     return `${prefix}_${crypto.randomBytes(8).toString('hex')}`;
 }
 
-function attachRealtimeServer(server, { providerFactory, providerMetadata, allowTranscriptLogging = false } = {}) {
+function attachRealtimeServer(server, { providerFactory, providerMetadata, allowTranscriptLogging = false, memoryStore } = {}) {
     if (typeof providerFactory !== 'function') throw new TypeError('providerFactory is required');
 
     server.on('upgrade', (request, socket) => {
@@ -138,7 +139,19 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
                 return fail(error.code || 'invalid_audio_config', error.message, { close: true });
             }
             inputResampler = createInputResampler(inputSampleRate);
-            const prompt = buildRealtimeSystemInstruction(options);
+            let memoryEnabled = false;
+            let sessionMemory = null;
+            if (!options.noSave && memoryStore?.available) {
+                try {
+                    validateDeviceId(options.deviceId);
+                    memoryEnabled = (await memoryStore.getSettings(options.deviceId)).enabled;
+                    if (memoryEnabled) sessionMemory = formatMemoryContext(await memoryStore.list(options.deviceId));
+                } catch (error) {
+                    return fail(error.code || 'memory_load_failed', 'Could not load memory for this device.', { close: true });
+                }
+            }
+            const effectiveOptions = { ...options, sessionMemory };
+            const prompt = buildRealtimeSystemInstruction(effectiveOptions);
             providerSession = providerFactory({
                 systemInstructionText: prompt.text,
                 systemInstructionMeta: prompt.meta,
@@ -152,7 +165,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
                 return fail(error.code || 'provider_connect_failed', 'Could not connect the voice provider.', { close: true });
             }
             started = true;
-            sessionOptions = options;
+            sessionOptions = effectiveOptions;
             send({
                 type: 'session.ready',
                 provider: providerMetadata.name,
@@ -164,6 +177,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
                 speech_speed: options.speechSpeed,
                 language: options.language,
                 no_save: options.noSave,
+                memory_enabled: memoryEnabled,
                 input_sample_rate: inputSampleRate,
                 provider_sample_rate: 16000,
             });

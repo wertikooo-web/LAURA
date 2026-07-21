@@ -37,6 +37,21 @@ test('localized controls, clear action and talking lips are present', () => {
   assert.match(html, /class="mouth"/);
   assert.match(styles, /overflow:hidden/);
   assert.match(app, /getByteTimeDomainData/);
+  assert.match(styles, /\.presence\[data-state=speaking\] \.mouth\{position:absolute;left:50%;top:50%;transform:translate\(-50%,-50%\)\}/);
+});
+
+test('temporary device identity and inspectable memory controls are present', () => {
+  assert.match(app, /laura_device_id/);
+  assert.match(app, /device_id:state\.deviceId/);
+  assert.match(html, /id="memoryEnabledToggle"/);
+  assert.match(html, /id="memoryList"/);
+  assert.match(html, /id="memoryClearButton"/);
+});
+
+test('conversation height is stable and recording state is visually obvious', () => {
+  assert.match(styles, /\.controls\{position:relative;padding-bottom:26px\}/);
+  assert.match(styles, /\.stop-button:disabled\{display:block;visibility:hidden\}/);
+  assert.match(styles, /\.talk-button:active,\.talk-button\.recording\{background:#e79a7b/);
 });
 
 test('speed and expression are sent at startup and can be changed live', () => {
