@@ -86,6 +86,9 @@ test('HTTP and realtime mock smoke', async (t) => {
     assert.equal(ready.no_save, true);
     assert.equal(ready.language, 'fr');
     assert.equal(ready.voice, 'luna');
+    adult.send(JSON.stringify({ type: 'session.mode.update', mode: 'quiet' }));
+    const modeUpdated = await nextEvent(adult, (event) => event.type === 'session.mode.updated');
+    assert.equal(modeUpdated.mode, 'quiet');
     adult.send(JSON.stringify({ type: 'text.send', text: 'Сегодня был тяжёлый день.' }));
     const reply = await nextEvent(adult, (event) => event.type === 'transcript.model');
     assert.match(reply.text, /Сегодня был тяжёлый день/);

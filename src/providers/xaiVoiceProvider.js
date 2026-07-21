@@ -97,6 +97,15 @@ class XaiVoiceProviderSession {
         return true;
     }
 
+    updateInstructions(systemInstructionText, systemInstructionMeta = {}) {
+        this.options.systemInstructionText = systemInstructionText;
+        this.systemInstructionMeta = systemInstructionMeta;
+        return this.sendRaw({
+            type: 'session.update',
+            session: { instructions: systemInstructionText },
+        });
+    }
+
     sendAudio(buffer) {
         if (this.closed || !Buffer.isBuffer(buffer) || buffer.length === 0) return;
         if (this.socket?.readyState === WebSocket.OPEN) {

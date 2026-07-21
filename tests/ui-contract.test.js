@@ -35,3 +35,8 @@ test('localized controls, clear action and talking lips are present', () => {
   assert.match(styles, /overflow:hidden/);
   assert.match(app, /getByteTimeDomainData/);
 });
+
+test('conversation mode can be changed during an active session', () => {
+  assert.match(app, /session\.mode\.update/);
+  assert.doesNotMatch(app, /if\s*\(state\.sessionReady\)\s*return;state\.mode/);
+});

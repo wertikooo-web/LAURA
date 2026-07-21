@@ -10,7 +10,7 @@ const {
 } = require('./wsProtocol');
 const { buildRealtimeSystemInstruction } = require('./realtimePrompt');
 const { resolveInputSampleRate, createInputResampler } = require('./inputAudioResampling');
-const { normalizeSessionOptions } = require('../config/env');
+const { normalizeSessionOptions, VALID_MODES } = require('../config/env');
 
 const MAX_INPUT_BYTES_PER_TURN = 8 * 1024 * 1024;
 
@@ -31,6 +31,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
 
         const sessionId = id('session');
         let started = false;
+        let sessionOptions = null;
         let closed = false;
         let providerSession = null;
         let inputActive = false;
@@ -143,6 +144,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
                 return fail(error.code || 'provider_connect_failed', 'Could not connect the voice provider.', { close: true });
             }
             started = true;
+            sessionOptions = options;
             send({
                 type: 'session.ready',
                 provider: providerMetadata.name,
@@ -154,6 +156,20 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
                 input_sample_rate: inputSampleRate,
                 provider_sample_rate: 16000,
             });
+        }
+
+        function updateMode(payload) {
+            if (!started || !sessionOptions) return fail('session_not_started', 'Start the session first.');
+            const mode = String(payload.mode || '').toLowerCase();
+            if (!VALID_MODES.has(mode)) return fail('invalid_mode', 'Unsupported conversation mode.');
+            sessionOptions = { ...sessionOptions, mode };
+            const prompt = buildRealtimeSystemInstruction(sessionOptions);
+            if (typeof providerSession.updateInstructions !== 'function'
+                || providerSession.updateInstructions(prompt.text, prompt.meta) === false) {
+                return fail('mode_update_failed', 'Could not update the conversation mode.');
+            }
+            send({ type: 'session.mode.updated', mode });
+            log('session_mode_updated', { mode, promptHash: prompt.meta.promptHash });
         }
 
         function startInput() {
@@ -225,6 +241,7 @@ function attachRealtimeServer(server, { providerFactory, providerMetadata, allow
             switch (payload.type) {
             case 'ping': send({ type: 'pong', timestamp_ms: payload.timestamp_ms || Date.now() }); break;
             case 'session.start': await startSession(payload); break;
+            case 'session.mode.update': updateMode(payload); break;
             case 'input_audio.start': startInput(); break;
             case 'input_audio.end': await endInput(); break;
             case 'session.interrupt': cancelCurrent(payload.reason || 'client_interrupt'); break;

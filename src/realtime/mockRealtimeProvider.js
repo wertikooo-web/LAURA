@@ -165,6 +165,12 @@ class MockRealtimeProviderSession {
         this.inputBytes = 0;
     }
 
+    updateInstructions(systemInstructionText, systemInstructionMeta = {}) {
+        this.systemInstructionText = systemInstructionText;
+        this.systemInstructionMeta = systemInstructionMeta;
+        return true;
+    }
+
     async sendText(text, context) {
         context.onEvent({
             type: 'transcript.model',
