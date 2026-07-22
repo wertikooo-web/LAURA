@@ -27,7 +27,9 @@ Both adapters emit the same internal events: user/model transcript events,
 Grok uses its existing WebSocket transport. Gemini uses the official
 `@google/genai` Live client, PCM16 mono input at 16 kHz, PCM output at 24 kHz,
 explicit activity start/end signals, audio response modality, and input/output
-transcription.
+transcription. Gemini automatic activity detection is explicitly disabled when
+the application sends those manual turn-boundary signals; mixing both modes is
+invalid and can leave a voice turn connected but unanswered.
 
 ## Switching and lifetime
 

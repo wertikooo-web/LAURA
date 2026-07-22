@@ -40,11 +40,12 @@ class GeminiLiveProviderSession {
         this.name = 'gemini'; this.config = config; this.options = options; this.dependencies = dependencies;
         this.instanceId = `gemini_${crypto.randomBytes(8).toString('hex')}`;
         this.session = null; this.connectPromise = null; this.activeContext = null;
-        this.pendingAudio = []; this.closed = false;
+        this.pendingAudio = []; this.closed = false; this.inputActivityActive = false; this.log = () => {};
     }
 
     connect(log = () => {}) {
         if (this.connectPromise) return this.connectPromise;
+        this.log = log;
         this.connectPromise = (async () => {
             const GoogleGenAI = this.dependencies.GoogleGenAI || require('@google/genai').GoogleGenAI;
             const ai = this.dependencies.client || new GoogleGenAI({ apiKey: this.config.apiKey });
@@ -53,7 +54,8 @@ class GeminiLiveProviderSession {
                 config: {
                     responseModalities: ['AUDIO'], systemInstruction: this.options.systemInstructionText,
                     speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: this.options.voice || this.config.voice } } },
-                    explicitVadSignal: true, inputAudioTranscription: {}, outputAudioTranscription: {},
+                    realtimeInputConfig: { automaticActivityDetection: { disabled: true } },
+                    inputAudioTranscription: {}, outputAudioTranscription: {},
                 },
                 callbacks: {
                     onopen: () => log('provider_connected', { provider: this.name, providerInstanceId: this.instanceId }),
@@ -73,7 +75,13 @@ class GeminiLiveProviderSession {
 
     updateInstructions() { return false; }
     updateVoiceDelivery() { return false; }
-    async startInput() { await this.connect(); if (!this.closed) this.session.sendRealtimeInput({ activityStart: {} }); }
+    async startInput() {
+        await this.connect();
+        if (!this.closed && !this.inputActivityActive) {
+            this.session.sendRealtimeInput({ activityStart: {} });
+            this.inputActivityActive = true;
+        }
+    }
     sendAudio(buffer) {
         if (this.closed || !Buffer.isBuffer(buffer) || buffer.length === 0) return;
         if (this.session) this.sendAudioNow(buffer);
@@ -82,7 +90,10 @@ class GeminiLiveProviderSession {
     sendAudioNow(buffer) { this.session?.sendRealtimeInput({ audio: { data: buffer.toString('base64'), mimeType: 'audio/pcm;rate=16000' } }); }
     async endInput(context) {
         this.activeContext = context; await this.connect(context.log);
-        if (!context.signal?.cancelled && !this.closed) this.session.sendRealtimeInput({ activityEnd: {} });
+        if (!context.signal?.cancelled && !this.closed && this.inputActivityActive) {
+            this.session.sendRealtimeInput({ activityEnd: {} });
+            this.inputActivityActive = false;
+        }
     }
     async sendText(text, context) {
         this.activeContext = context; await this.connect(context.log);
@@ -92,16 +103,23 @@ class GeminiLiveProviderSession {
         if (this.activeContext?.signal) { this.activeContext.signal.cancelled = true; this.activeContext.signal.reason = reason; }
         this.activeContext = null;
         try {
-            this.session?.sendRealtimeInput({ activityStart: {} });
-            this.session?.sendRealtimeInput({ activityEnd: {} });
+            if (!this.inputActivityActive) {
+                this.session?.sendRealtimeInput({ activityStart: {} });
+                this.inputActivityActive = true;
+            }
+            if (reason !== 'user_started_speaking') {
+                this.session?.sendRealtimeInput({ activityEnd: {} });
+                this.inputActivityActive = false;
+            }
         } catch { /* closing */ }
     }
     close() {
-        this.closed = true; this.activeContext = null; this.pendingAudio.length = 0;
+        this.closed = true; this.activeContext = null; this.inputActivityActive = false; this.pendingAudio.length = 0;
         try { this.session?.close?.(); } catch { /* already closed */ }
     }
     emitProviderError(error) {
         const normalized = normalizeProviderError(error, this.name);
+        this.log('provider_error', { provider: this.name, code: normalized.code, providerInstanceId: this.instanceId });
         this.activeContext?.onEvent?.({ type: 'provider.error', ...normalized, provider_instance_id: this.instanceId });
     }
     handleMessage(message) {

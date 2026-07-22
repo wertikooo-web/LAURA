@@ -12,8 +12,14 @@
     <header class="topbar">
       <button id="connectButton" class="connection-button" type="button" aria-pressed="false">CONNECT</button>
       <div class="brand"><p class="eyebrow">VOICE COMPANION · 18+</p><h1>LAURA</h1></div>
-      <button id="privacyButton" class="icon-button" type="button"><span class="privacy-dot"></span><span data-i18n="privacy">Privacy</span></button>
+      <div class="topbar-actions">
+        <label class="topbar-language"><span>Language</span><select id="languageSelect"><option value="ru">Russian</option><option value="ro">Romanian</option><option value="en">English</option><option value="fr">French</option></select></label>
+        <button id="settingsOpenButton" class="icon-button settings-open-button" type="button" aria-controls="settingsPanel" aria-label="Open settings">⚙</button>
+      </div>
     </header>
+
+    <div id="workspace" class="workspace">
+      <section class="conversation-pane" aria-label="LAURA conversation">
 
     <section class="presence-card" aria-labelledby="presenceTitle">
       <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
@@ -34,16 +40,6 @@
       <button class="mode" data-mode="quiet" type="button"><span>Quiet</span><small data-i18n="modeQuiet">минимум слов</small></button>
     </section>
 
-    <section class="selectors" aria-label="Session settings">
-      <label><span>Realtime</span><select id="providerSelect"></select></label>
-      <label><span>Language</span><select id="languageSelect"><option value="ru">Russian</option><option value="ro">Romanian</option><option value="en">English</option><option value="fr">French</option></select></label>
-      <label><span>Voice</span><select id="voiceSelect"></select></label>
-      <label><span>Adult</span><select id="adultModeSelect"><option value="warm">Warm</option><option value="flirty">Flirty</option><option value="sensual">Sensual</option><option value="direct">+</option></select></label>
-      <label><span>Speed</span><select id="speechSpeedSelect"><option value="0.72">Very slow</option><option value="0.8" selected>Slow</option><option value="0.9">Natural</option><option value="1">Normal</option></select></label>
-      <label class="expression-setting"><span>Expression</span><select id="voiceExpressionSelect"><option value="calm">Calm</option><option value="alive" selected>Alive</option><option value="passionate">Passionate</option></select></label>
-      <button id="previewButton" class="preview-button" type="button" data-i18n="preview">Preview</button>
-    </section>
-
     <section class="conversation" aria-label="Conversation transcript">
       <div class="conversation-head"><span data-i18n="conversation">Разговор</span><button id="clearButton" type="button" data-i18n="clear">Очистить</button></div>
       <div id="transcript" class="transcript" aria-live="polite"></div>
@@ -59,7 +55,27 @@
       <button id="stopButton" class="stop-button" type="button" disabled data-i18n="stop">Остановить ответ</button>
     </div>
 
-    <footer><span id="providerLabel">provider: loading</span><span>Laura AI - all rights reserved 2026</span></footer>
+        <footer><span id="providerLabel">provider: loading</span><span>Laura AI - all rights reserved 2026</span></footer>
+      </section>
+
+      <aside id="settingsPanel" class="settings-panel" aria-label="Settings" data-open="false" data-collapsed="false">
+        <div class="settings-panel-head">
+          <div class="settings-title"><p class="eyebrow">LAURA CONTROL</p><h2>Settings</h2></div>
+          <button id="settingsToggleButton" class="settings-toggle" type="button" aria-expanded="true" aria-controls="settingsPanelBody" title="Collapse settings">‹</button>
+        </div>
+        <div id="settingsPanelBody" class="settings-panel-body">
+          <section class="selectors" aria-label="Session settings">
+            <label><span>Realtime</span><select id="providerSelect"></select></label>
+            <label><span>Voice</span><select id="voiceSelect"></select></label>
+            <label><span>Adult</span><select id="adultModeSelect"><option value="warm">Warm</option><option value="flirty">Flirty</option><option value="sensual">Sensual</option><option value="direct">+</option></select></label>
+            <label><span>Speed</span><select id="speechSpeedSelect"><option value="0.72">Very slow</option><option value="0.8" selected>Slow</option><option value="0.9">Natural</option><option value="1">Normal</option></select></label>
+            <label class="expression-setting"><span>Expression</span><select id="voiceExpressionSelect"><option value="calm">Calm</option><option value="alive" selected>Alive</option><option value="passionate">Passionate</option></select></label>
+            <button id="previewButton" class="preview-button" type="button" data-i18n="preview">Preview</button>
+          </section>
+          <button id="privacyButton" class="privacy-settings-button" type="button"><span class="privacy-dot"></span><span data-i18n="privacy">Privacy</span><strong>›</strong></button>
+        </div>
+      </aside>
+    </div>
   </main>
 
   <dialog id="ageGate" class="gate">

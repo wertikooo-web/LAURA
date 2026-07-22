@@ -82,6 +82,19 @@ test('realtime provider selection restarts the single shared session', () => {
   assert.match(html, /id="metricsTable"/);
 });
 
+test('settings use a collapsible desktop panel and a separate mobile screen', () => {
+  assert.match(html, /id="settingsPanel"[^>]*class="settings-panel"/);
+  assert.match(html, /id="settingsToggleButton"/);
+  assert.match(html, /class="topbar-language"[\s\S]*id="languageSelect"/);
+  assert.ok(html.indexOf('id="languageSelect"') < html.indexOf('id="settingsPanel"'));
+  assert.ok(html.indexOf('id="privacyButton"') > html.indexOf('id="settingsPanel"'));
+  assert.match(styles, /grid-template-columns:minmax\(0,650px\) 280px/);
+  assert.match(styles, /\.workspace\.settings-collapsed\{grid-template-columns:minmax\(0,650px\) 50px\}/);
+  assert.match(styles, /\.settings-panel\{position:fixed;[^}]*height:100dvh/);
+  assert.match(app, /laura_settings_collapsed/);
+  assert.match(app, /panel\.dataset\.open='false'/);
+});
+
 test('conversation mode can be changed during an active session', () => {
   assert.match(app, /session\.mode\.update/);
   assert.doesNotMatch(app, /if\s*\(state\.sessionReady\)\s*return;state\.mode/);

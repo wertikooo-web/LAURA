@@ -54,6 +54,7 @@ test('Gemini adapter uses official Live setup and explicit activity signals with
     assert.equal(connectOptions.config.systemInstruction, 'shared prompt');
     assert.equal(connectOptions.config.speechConfig.voiceConfig.prebuiltVoiceConfig.voiceName, 'Kore');
     assert.deepEqual(connectOptions.config.responseModalities, ['AUDIO']);
+    assert.deepEqual(connectOptions.config.realtimeInputConfig, { automaticActivityDetection: { disabled: true } });
     assert.deepEqual(sent.map((value) => Object.keys(value)[0]), ['activityStart', 'audio', 'activityEnd']);
 });
 
