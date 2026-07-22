@@ -28,20 +28,23 @@ function languageInstruction(language) {
     return 'Отвечай исключительно на русском языке. Не меняй язык из-за отдельных иностранных слов или имён.';
 }
 
-function identityInstruction(language) {
-    if (language === 'ru') return 'Всегда называй себя LAURA. Произноси имя «ЛА́ура», с ударением на первом слоге; никогда «Лау́ра».';
-    return 'Always call yourself LAURA. Pronounce LAURA with the stress on the first syllable.';
+function identityInstruction(language, characterName = 'LAURA') {
+    if (String(characterName).toUpperCase() === 'LAURA') {
+        if (language === 'ru') return 'Всегда называй себя LAURA. Произноси имя «ЛА́ура», с ударением на первом слоге; никогда «Лау́ра».';
+        return 'Always call yourself LAURA. Pronounce LAURA with the stress on the first syllable.';
+    }
+    return `Always identify yourself as ${clean(characterName)}. Never claim to be LAURA or another character.`;
 }
 
-function buildRealtimeSystemInstruction({ mode = 'talk', adultMode = 'warm', voiceExpression = 'alive', language = 'ru', noSave = true, sessionMemory = null } = {}) {
-    const persona = withinLimit(defaultPersonaPrompt(), 'persona');
+function buildRealtimeSystemInstruction({ mode = 'talk', adultMode = 'warm', voiceExpression = 'alive', language = 'ru', noSave = true, sessionMemory = null, characterPrompt = '', characterName = 'LAURA' } = {}) {
+    const persona = withinLimit(characterPrompt || defaultPersonaPrompt(), 'persona');
     const context = [
         MODE_INSTRUCTIONS[mode] || MODE_INSTRUCTIONS.talk,
         ADULT_MODE_INSTRUCTIONS[adultMode] || ADULT_MODE_INSTRUCTIONS.warm,
         VOICE_EXPRESSION_INSTRUCTIONS[voiceExpression] || VOICE_EXPRESSION_INSTRUCTIONS.alive,
         languageInstruction(language),
-        identityInstruction(language),
-        `Privacy for this session: ${noSave ? 'NO-SAVE. Do not request or create long-term memories.' : 'Memory may be used only after explicit user consent.'}`,
+        identityInstruction(language, characterName),
+        `Privacy for this session: ${noSave ? 'NO-SAVE. Do not store the current transcript or infer new memories. Explicitly saved facts may still be used.' : 'Memory may be used only after explicit user consent.'}`,
         sessionMemory ? `Consented memory relevant to this conversation:\n${clean(sessionMemory)}` : 'No consented long-term memory is available.',
     ].join('\n');
     const text = `[PERSONA]\n${persona}\n\n[CURRENT CONTEXT]\n${withinLimit(context, 'current_context')}`;

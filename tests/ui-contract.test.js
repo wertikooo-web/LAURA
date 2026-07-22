@@ -41,6 +41,14 @@ test('localized controls, clear action and talking lips are present', () => {
   assert.match(styles, /\.presence\[data-state=speaking\] \.mouth\{position:absolute;left:50%;top:50%;transform:translate\(-50%,-50%\)\}/);
 });
 
+test('provider audio uses adaptive leveling and a shared safety limiter', () => {
+  assert.match(html, /<script src="\/audio-leveling\.js" defer><\/script>[\s\S]*<script src="\/app\.js" defer><\/script>/);
+  assert.match(app, /computeAdaptivePlaybackGain\(buffer,state\.playbackLevels\[provider\]\)/);
+  assert.match(app, /createDynamicsCompressor\(\)/);
+  assert.match(app, /gainNode\.connect\(state\.playbackAnalyser\)/);
+  assert.match(app, /state\.playbackLimiter\.connect\(context\.destination\)/);
+});
+
 test('temporary device identity and inspectable memory controls are present', () => {
   assert.match(app, /laura_device_id/);
   assert.match(app, /device_id:state\.deviceId/);
@@ -95,6 +103,19 @@ test('settings use a collapsible desktop panel and a separate mobile screen', ()
   assert.match(styles, /\.topbar\{position:absolute;[^}]*left:0;right:0;[^}]*padding:18px 18px 0/);
   assert.match(app, /laura_settings_collapsed/);
   assert.match(app, /panel\.dataset\.open='false'/);
+  assert.match(styles, /@media\(max-width:520px\)\{\.topbar\{padding:26px 14px 0\}\.presence\{top:50%\}/);
+});
+
+test('mobile settings trigger sits in the lower-right of the presence card', () => {
+    assert.match(html, /<section class="presence-card"[\s\S]*?<button id="settingsOpenButton"/);
+    assert.match(styles, /@media\(max-width:520px\)[\s\S]*?\.settings-open-button\{position:absolute;z-index:5;right:14px;bottom:14px\}/);
+});
+
+test('character studio offers manual and generated drafts without a second realtime pipeline', () => {
+    for (const id of ['characterSelect','characterManageButton','characterDialog','characterManualButton','characterGenerateButton','surpriseMeButton','characterSaveButton']) assert.match(html, new RegExp(`id="${id}"`));
+    assert.match(app, /character_id:state\.characterId/);
+    assert.match(app, /result\.variants\[0\]/);
+    assert.match(app, /Черновик не сохранён/);
 });
 
 test('conversation mode can be changed during an active session', () => {
@@ -106,5 +127,7 @@ test('voice preview uses the protected server endpoint and unlocked audio contex
   assert.match(app, /fetch\(['"]\/api\/voice-preview/);
   assert.match(app, /playbackContext\.resume\(\)/);
   assert.match(app, /decodeAudioData/);
+  assert.match(app, /provider:state\.realtimeProvider,voice:state\.voice,language:state\.language/);
+  assert.match(app, /\['grok','gemini'\]\.includes\(state\.realtimeProvider\)/);
   assert.doesNotMatch(app, /new Audio\(`\/previews\//);
 });

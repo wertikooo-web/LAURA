@@ -11,6 +11,7 @@ const {
 const { buildRealtimeSystemInstruction } = require('./realtimePrompt');
 const { resolveInputSampleRate, createInputResampler } = require('./inputAudioResampling');
 const { validateDeviceId, formatMemoryContext } = require('../memory/memoryStore');
+const { LAURA_CHARACTER_ID } = require('../characters/characterModel');
 const {
     normalizeSessionOptions,
     VALID_MODES,
@@ -25,7 +26,7 @@ function id(prefix) {
     return `${prefix}_${crypto.randomBytes(8).toString('hex')}`;
 }
 
-function attachRealtimeServer(server, { resolveProvider, defaultProvider = 'mock', allowTranscriptLogging = false, memoryStore, metrics } = {}) {
+function attachRealtimeServer(server, { resolveProvider, defaultProvider = 'mock', allowTranscriptLogging = false, memoryStore, characterService, metrics } = {}) {
     if (typeof resolveProvider !== 'function') throw new TypeError('resolveProvider is required');
 
     server.on('upgrade', (request, socket) => {
@@ -150,18 +151,25 @@ function attachRealtimeServer(server, { resolveProvider, defaultProvider = 'mock
                 return fail(error.code || 'invalid_audio_config', error.message, { close: true });
             }
             inputResampler = createInputResampler(inputSampleRate);
+            let characterContext = null;
+            try {
+                validateDeviceId(options.deviceId);
+                characterContext = await characterService?.getSessionContext(options.deviceId, options.characterId || LAURA_CHARACTER_ID, options.scenarioId || null);
+            } catch (error) {
+                return fail(error.code || 'character_load_failed', 'Could not load the selected character.', { close: true });
+            }
             let memoryEnabled = false;
             let sessionMemory = null;
-            if (!options.noSave && memoryStore?.available) {
+            if (memoryStore?.available) {
                 try {
                     validateDeviceId(options.deviceId);
                     memoryEnabled = (await memoryStore.getSettings(options.deviceId)).enabled;
-                    if (memoryEnabled) sessionMemory = formatMemoryContext(await memoryStore.list(options.deviceId));
+                    if (memoryEnabled) sessionMemory = formatMemoryContext(await memoryStore.list(options.deviceId, { characterId: characterContext?.character.id || LAURA_CHARACTER_ID }));
                 } catch (error) {
                     return fail(error.code || 'memory_load_failed', 'Could not load memory for this device.', { close: true });
                 }
             }
-            const effectiveOptions = { ...options, sessionMemory };
+            const effectiveOptions = { ...options, sessionMemory, characterPrompt: characterContext?.characterPrompt || '', characterName: characterContext?.character.name || 'LAURA', characterContext };
             const prompt = buildRealtimeSystemInstruction(effectiveOptions);
             providerSession = providerMetadata.createSession({
                 systemInstructionText: prompt.text,
@@ -178,6 +186,11 @@ function attachRealtimeServer(server, { resolveProvider, defaultProvider = 'mock
             }
             started = true;
             sessionOptions = effectiveOptions;
+            try {
+                await characterService?.saveSnapshot(sessionId, options.deviceId, characterContext, { voice: options.voice, provider: providerMetadata.name, promptHash: prompt.meta.promptHash });
+            } catch (error) {
+                return fail(error.code || 'character_snapshot_failed', 'Could not preserve the character session snapshot.', { close: true });
+            }
             send({
                 type: 'session.ready',
                 provider: providerMetadata.name,
@@ -190,6 +203,10 @@ function attachRealtimeServer(server, { resolveProvider, defaultProvider = 'mock
                 language: options.language,
                 no_save: options.noSave,
                 memory_enabled: memoryEnabled,
+                character_id: characterContext?.character.id,
+                character_name: characterContext?.character.name,
+                character_version: characterContext?.character.version,
+                scenario_id: characterContext?.scenario?.id || null,
                 input_sample_rate: inputSampleRate,
                 provider_sample_rate: 16000,
             });

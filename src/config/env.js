@@ -1,12 +1,12 @@
 'use strict';
 
 const { SUPPORTED_LANGUAGES, normalizeVoice } = require('../voiceCatalog');
+const { GEMINI_VOICE_IDS, normalizeGeminiVoice } = require('../geminiVoiceCatalog');
 
 const VALID_PROVIDERS = new Set(['mock', 'grok', 'gemini']);
 const VALID_MODES = new Set(['talk', 'evening', 'quiet']);
 const VALID_ADULT_MODES = new Set(['warm', 'flirty', 'sensual', 'direct']);
 const VALID_VOICE_EXPRESSIONS = new Set(['calm', 'alive', 'passionate']);
-const VALID_GEMINI_VOICES = new Set(['Aoede', 'Kore', 'Leda', 'Zephyr']);
 const VALID_LANGUAGES = new Set(SUPPORTED_LANGUAGES);
 const DEFAULT_SPEECH_SPEED = 0.8;
 const MIN_SPEECH_SPEED = 0.7;
@@ -52,6 +52,11 @@ function loadConfig(env = process.env) {
         nodeEnv: String(env.NODE_ENV || 'development').toLowerCase(),
         databaseUrl: String(env.DATABASE_URL || ''),
         memoryFilePath: String(env.MEMORY_FILE_PATH || ''),
+        characterFilePath: String(env.CHARACTER_FILE_PATH || ''),
+        characterGeneration: {
+            provider: String(env.CHARACTER_GENERATION_PROVIDER || 'gemini').trim().toLowerCase(),
+            model: String(env.CHARACTER_GENERATION_MODEL || 'gemini-2.5-flash').trim(),
+        },
         xai: {
             apiKey: String(env.GROK_API_KEY || env.XAI_API_KEY || ''),
             realtimeUrl: String(env.XAI_REALTIME_URL || 'wss://api.x.ai/v1/realtime'),
@@ -61,7 +66,7 @@ function loadConfig(env = process.env) {
         gemini: {
             apiKey: String(env.GEMINI_API_KEY || ''),
             model: String(env.GEMINI_LIVE_MODEL || 'gemini-3.1-flash-live-preview'),
-            voice: String(env.GEMINI_VOICE_ID || 'Aoede'),
+            voice: env.GEMINI_VOICE_ID ? normalizeGeminiVoice(env.GEMINI_VOICE_ID, '') : 'Aoede',
         },
     };
 
@@ -76,8 +81,11 @@ function loadConfig(env = process.env) {
             code: 'xai_realtime_url_must_use_wss',
         });
     }
-    if (config.gemini.apiKey && !VALID_GEMINI_VOICES.has(config.gemini.voice)) {
+    if (config.gemini.apiKey && !GEMINI_VOICE_IDS.has(config.gemini.voice)) {
         throw Object.assign(new Error('gemini_voice_invalid'), { code: 'gemini_voice_invalid' });
+    }
+    if (config.characterGeneration.provider !== 'gemini') {
+        throw Object.assign(new Error('unsupported_character_generation_provider'), { code: 'unsupported_character_generation_provider' });
     }
     return config;
 }
@@ -100,6 +108,8 @@ function normalizeSessionOptions(value = {}, { defaultVoice = 'eve', defaultProv
         noSave: value.no_save !== false,
         deviceId: String(value.device_id || value.deviceId || ''),
         realtimeProvider: normalizeProviderName(value.realtime_provider || value.realtimeProvider, defaultProvider),
+        characterId: String(value.character_id || value.characterId || ''),
+        scenarioId: String(value.scenario_id || value.scenarioId || ''),
     };
 }
 

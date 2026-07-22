@@ -23,6 +23,8 @@ any other project.
 - one provider-independent realtime pipeline with `mock`, Grok Voice, and Gemini Live adapters;
 - server-side provider authentication, so API keys never reach the browser;
 - no raw-audio storage and no transcript logging by default.
+- multiple structured characters with independent scenarios and relationship memory;
+- manual character creation and optional Gemini text generation through an editable unsaved draft.
 
 This stage validates voice, latency, turn-taking, personality, and willingness
 to start a second conversation. Memory is now an explicit, inspectable MVP;
@@ -110,14 +112,26 @@ realtime system instruction.
   `ALLOW_TRANSCRIPT_LOGGING=true` is deliberately configured;
 - long-term memory is opt-in, inspectable, editable, and deletable;
 - the temporary identity is one browser-local device UUID;
-- no-save prevents stored memory from entering a realtime session.
+- no-save prevents retention of the current transcript; explicitly saved facts remain available;
+- facts can be global for all characters or private to the selected character relationship.
 
 ## Memory storage
 
 Local development stores approved memory in `.data/memory.json`. Production
 requires PostgreSQL through `DATABASE_URL`; run `npm run db:migrate` once before
-enabling memory. Without PostgreSQL, production reports memory as unavailable
+enabling memory and character profiles. Without PostgreSQL, production reports memory as unavailable
 instead of using Railway's ephemeral filesystem. See `docs/MEMORY_POLICY.md`.
+
+## Characters
+
+Open Settings → Characters to switch, create, edit, duplicate or delete profiles. LAURA is protected; duplicate it to create an editable variation. Generation uses the same `GEMINI_API_KEY` but a separate text model setting:
+
+```text
+CHARACTER_GENERATION_PROVIDER=gemini
+CHARACTER_GENERATION_MODEL=gemini-2.5-flash
+```
+
+This does not change `REALTIME_VOICE_PROVIDER`. Generated profiles remain browser drafts until Save is pressed. Architecture and memory isolation are documented in `docs/CHARACTER_PROFILE_ARCHITECTURE.md`.
 
 ## Tests
 

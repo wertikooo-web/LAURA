@@ -4,6 +4,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const WebSocket = require('ws');
 const { createServer } = require('../src/server');
+const { InMemoryMemoryStore } = require('../src/memory/memoryStore');
+const { InMemoryCharacterStore } = require('../src/characters/characterStore');
+const DEVICE_ID = '5ed4148b-5df0-47f5-b634-8da80a6c681f';
 
 function nextEvent(socket, predicate, timeoutMs = 4000) {
     return new Promise((resolve, reject) => {
@@ -44,7 +47,7 @@ function openSocket(url) {
 }
 
 test('HTTP and realtime mock smoke', async (t) => {
-    const { server } = createServer({ env: { REALTIME_PROVIDER: 'mock', HOST: '127.0.0.1', PORT: '3000' } });
+    const { server } = createServer({ env: { REALTIME_PROVIDER: 'mock', HOST: '127.0.0.1', PORT: '3000' }, memoryStore: new InMemoryMemoryStore(), characterStore: new InMemoryCharacterStore() });
     await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
     t.after(() => new Promise((resolve) => {
         server.closeAllConnections?.();
@@ -87,6 +90,7 @@ test('HTTP and realtime mock smoke', async (t) => {
         language: 'fr',
         voice: 'luna',
         no_save: true,
+        device_id: DEVICE_ID,
     }));
     const ready = await nextEvent(adult, (event) => event.type === 'session.ready');
     assert.equal(ready.provider, 'mock');

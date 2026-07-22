@@ -3,6 +3,7 @@
 const { validateDeviceId, validateMemoryId } = require('./memoryStore');
 
 function deviceIdFrom(request) { return validateDeviceId(request.headers['x-laura-device-id']); }
+function characterIdFrom(request) { const value=request.headers['x-laura-character-id']; return value ? validateMemoryId(value) : null; }
 
 function statusFor(error) {
     if (error.code === 'memory_storage_not_configured') return 503;
@@ -19,6 +20,7 @@ function createMemoryApi({ memoryStore, sendJson, readJson }) {
                 sendJson(response, 200, { available: memoryStore.available, persistence: memoryStore.persistence }); return true;
             }
             const deviceId = deviceIdFrom(request);
+            const characterId = characterIdFrom(request);
             if (!memoryStore.available) throw Object.assign(new Error('memory_storage_not_configured'), { code: 'memory_storage_not_configured' });
             if (url.pathname === '/api/memory/settings') {
                 if (request.method === 'GET') { sendJson(response, 200, await memoryStore.getSettings(deviceId)); return true; }
@@ -29,13 +31,13 @@ function createMemoryApi({ memoryStore, sendJson, readJson }) {
                 }
             }
             if (url.pathname === '/api/memory') {
-                if (request.method === 'GET') { sendJson(response, 200, { items: await memoryStore.list(deviceId) }); return true; }
+                if (request.method === 'GET') { sendJson(response, 200, { items: await memoryStore.list(deviceId, { characterId }) }); return true; }
                 if (request.method === 'POST') {
                     const body = await readJson(request);
                     if (body.explicit_consent !== true) throw Object.assign(new Error('invalid_explicit_consent'), { code: 'invalid_explicit_consent' });
                     const settings = await memoryStore.getSettings(deviceId);
                     if (!settings.enabled) { sendJson(response, 409, { error: 'memory_not_enabled' }); return true; }
-                    sendJson(response, 201, await memoryStore.create(deviceId, body.content)); return true;
+                    sendJson(response, 201, await memoryStore.create(deviceId, body.content, { scope: body.scope || 'global_user', characterId })); return true;
                 }
                 if (request.method === 'DELETE') { sendJson(response, 200, { deleted: await memoryStore.clear(deviceId) }); return true; }
             }

@@ -2,6 +2,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const { createServer } = require('../src/server');
 const { InMemoryMemoryStore } = require('../src/memory/memoryStore');
 const { buildRealtimeSystemInstruction } = require('../src/realtime/realtimePrompt');
@@ -50,9 +52,16 @@ test('memory is device-scoped and validates identifiers and content', async () =
 });
 
 test('realtime prompt injects approved memory only when supplied', () => {
-    const withMemory = buildRealtimeSystemInstruction({ noSave: false, sessionMemory: '1. Любит джаз' }).text;
+    const withMemory = buildRealtimeSystemInstruction({ noSave: true, sessionMemory: '1. Любит джаз' }).text;
     assert.match(withMemory, /Любит джаз/);
+    assert.match(withMemory, /Explicitly saved facts may still be used/);
     const noSave = buildRealtimeSystemInstruction({ noSave: true }).text;
     assert.match(noSave, /NO-SAVE/);
     assert.doesNotMatch(noSave, /Любит джаз/);
+});
+
+test('realtime server loads approved memory independently of no-save transcript mode', () => {
+    const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'realtime', 'realtimeServer.js'), 'utf8');
+    assert.match(source, /if \(memoryStore\?\.available\)/);
+    assert.doesNotMatch(source, /if \(!options\.noSave && memoryStore\?\.available\)/);
 });

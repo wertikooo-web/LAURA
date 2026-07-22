@@ -17,10 +17,10 @@
         <button id="connectButton" class="connection-button" type="button" aria-pressed="false">CONNECT</button>
         <div class="brand"><p class="eyebrow">VOICE COMPANION · 18+</p><h1>LAURA</h1></div>
         <div class="topbar-actions">
-          <button id="settingsOpenButton" class="icon-button settings-open-button" type="button" aria-controls="settingsPanel" aria-label="Open settings">⚙</button>
           <label class="topbar-language"><span>Language</span><select id="languageSelect"><option value="ru">Russian</option><option value="ro">Romanian</option><option value="en">English</option><option value="fr">French</option></select></label>
         </div>
       </header>
+      <button id="settingsOpenButton" class="icon-button settings-open-button" type="button" aria-controls="settingsPanel" aria-label="Open settings">⚙</button>
       <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
       <div id="presence" class="presence" data-state="idle" aria-hidden="true">
         <div class="presence-ring ring-one"></div><div class="presence-ring ring-two"></div>
@@ -64,6 +64,8 @@
         </div>
         <div id="settingsPanelBody" class="settings-panel-body">
           <section class="selectors" aria-label="Session settings">
+            <label class="character-setting"><span>Character</span><select id="characterSelect"></select></label>
+            <button id="characterManageButton" class="preview-button character-manage-button" type="button">Characters</button>
             <label><span>Realtime</span><select id="providerSelect"></select></label>
             <label><span>Voice</span><select id="voiceSelect"></select></label>
             <label><span>Adult</span><select id="adultModeSelect"><option value="warm">Warm</option><option value="flirty">Flirty</option><option value="sensual">Sensual</option><option value="direct">+</option></select></label>
@@ -96,6 +98,7 @@
         <div class="memory-heading"><strong id="memoryTitle">Память LAURA</strong><span id="memoryStatus"></span></div>
         <label class="toggle-row memory-toggle"><span><strong id="memoryEnableLabel">Разрешить долгосрочную память</strong><small id="memoryEnableHint">Работает, когда «Не сохранять разговор» выключено</small></span><input id="memoryEnabledToggle" type="checkbox"></label>
         <div id="memoryEditor" class="memory-editor">
+          <label class="memory-scope"><span>Область памяти</span><select id="memoryScopeSelect"><option value="global_user">Для всех персонажей</option><option value="character_relationship">Только для выбранного персонажа</option></select></label>
           <div class="memory-add"><input id="memoryInput" maxlength="500" placeholder="Что LAURA должна помнить"><button id="memoryAddButton" type="button">Запомнить</button></div>
           <div id="memoryList" class="memory-list"></div>
           <button id="memoryClearButton" class="memory-clear" type="button">Удалить всю память</button>
@@ -105,6 +108,58 @@
       <button class="secondary-button" value="close" data-i18n="done">Готово</button>
     </form>
   </dialog>
+
+  <dialog id="characterDialog" class="character-dialog">
+    <div class="character-shell">
+      <header class="character-dialog-head"><div><p class="eyebrow">CHARACTER STUDIO</p><h2>Персонажи</h2><p>Одна платформа — разные характеры и отдельная память.</p></div><button id="characterDialogClose" type="button" aria-label="Close">×</button></header>
+      <div class="character-studio">
+        <aside><button id="characterNewButton" class="primary-button" type="button">+ Новый персонаж</button><div id="characterList" class="character-list"></div></aside>
+        <section class="character-workspace">
+          <div id="characterCreationPaths" class="creation-paths">
+            <button id="characterManualButton" type="button"><strong>Создать вручную</strong><span>Настроить личность, историю и стиль</span></button>
+            <button id="characterGenerateButton" type="button"><strong>Сгенерировать персонажа</strong><span>Задать опоры или нажать «Удиви меня»</span></button>
+          </div>
+          <form id="characterEditor" class="character-editor" hidden>
+            <div class="editor-toolbar"><strong id="characterEditorTitle">Новый персонаж</strong><span id="characterDraftBadge">Черновик не сохранён</span></div>
+            <div id="characterGenerationControls" class="generation-controls" hidden>
+              <label><span>Характер / пожелания</span><textarea id="generationHints" rows="3" placeholder="Например: уверенная, ироничная, любит путешествия и вино"></textarea></label>
+              <label><span>Творческий режим</span><select id="generationCreativity"><option value="conservative">Предсказуемый</option><option value="balanced" selected>Сбалансированный</option><option value="inventive">Неожиданный</option></select></label>
+              <button id="surpriseMeButton" type="button">Удиви меня</button><button id="guidedGenerateButton" type="button">Создать черновик</button>
+              <small>Результат сначала появится здесь как редактируемый черновик и не попадёт в базу без кнопки «Сохранить».</small>
+            </div>
+            <div class="editor-grid">
+              <label><span>Имя</span><input id="characterName" maxlength="80" required></label>
+              <label><span>Возраст (18+)</span><input id="characterAge" type="number" min="18" max="100" value="30" required></label>
+              <label class="wide"><span>Короткое описание</span><input id="characterDescription" maxlength="240"></label>
+              <label><span>Основная роль</span><input id="characterRole" maxlength="120" placeholder="companion, expert, guide"></label>
+              <label><span>Профессия</span><input id="characterOccupation" maxlength="160"></label>
+              <label class="wide"><span>Происхождение и история</span><textarea id="characterOrigin" rows="3" maxlength="2000"></textarea></label>
+              <label class="wide"><span>Биография</span><textarea id="characterBiography" rows="5" maxlength="5000"></textarea></label>
+              <label class="wide"><span>Интересы (через запятую)</span><input id="characterInterests"></label>
+              <label class="wide"><span>Знания (через запятую)</span><input id="characterKnowledge"></label>
+              <fieldset class="wide personality-grid"><legend>Характер</legend>
+                <label><span>Теплота <output id="warmthValue">0.7</output></span><input id="characterWarmth" type="range" min="0" max="1" step="0.05" value="0.7"></label>
+                <label><span>Прямота <output id="directnessValue">0.7</output></span><input id="characterDirectness" type="range" min="0" max="1" step="0.05" value="0.7"></label>
+                <label><span>Юмор <output id="humorValue">0.6</output></span><input id="characterHumor" type="range" min="0" max="1" step="0.05" value="0.6"></label>
+                <label><span>Инициативность <output id="initiativeValue">0.5</output></span><input id="characterInitiative" type="range" min="0" max="1" step="0.05" value="0.5"></label>
+              </fieldset>
+              <label><span>Стиль речи</span><select id="characterVocabulary"><option value="casual">Разговорный</option><option value="educated">Образованный</option><option value="simple">Простой</option><option value="poetic">Поэтичный</option><option value="technical">Технический</option></select></label>
+              <label><span>Длина ответа</span><select id="characterResponseLength"><option value="very_short">Очень коротко</option><option value="short" selected>Коротко</option><option value="medium">Средне</option><option value="long">Подробно</option></select></label>
+              <label><span>Воплощение</span><select id="characterEmbodiment"><option value="digital_explicit">Цифровой персонаж</option><option value="contextual">Контекстное</option><option value="human_like">Человекоподобное</option></select></label>
+              <label><span>Провайдер по умолчанию</span><select id="characterProvider"><option value="grok">Grok</option><option value="gemini">Gemini</option></select></label>
+              <label class="wide"><span>Внешность и стиль одежды</span><textarea id="characterAppearance" rows="3" maxlength="1000"></textarea></label>
+              <label class="wide"><span>Семья и важные отношения персонажа</span><textarea id="characterFamily" rows="3" maxlength="1500"></textarea></label>
+              <label class="wide"><span>Дополнительные правила поведения</span><textarea id="characterRules" rows="3" maxlength="3000"></textarea></label>
+              <label class="wide"><span>Сценарии: одна строка — один сценарий</span><textarea id="characterScenarios" rows="3" placeholder="Вечерний разговор\nВинный консультант"></textarea></label>
+            </div>
+            <p id="characterEditorStatus" class="editor-status"></p>
+            <div class="editor-actions"><button id="characterDeleteButton" class="danger-button" type="button" hidden>Удалить</button><button id="characterDuplicateButton" type="button" hidden>Дублировать</button><button id="characterSaveButton" class="primary-button" type="submit">Сохранить персонажа</button></div>
+          </form>
+        </section>
+      </div>
+    </div>
+  </dialog>
+  <script src="/audio-leveling.js" defer></script>
   <script src="/app.js" defer></script>
 </body>
 </html>

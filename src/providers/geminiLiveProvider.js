@@ -2,13 +2,7 @@
 
 const crypto = require('crypto');
 const { normalizeProviderError } = require('./providerErrors');
-
-const GEMINI_VOICES = Object.freeze([
-    { id: 'Aoede', label: 'Aoede' },
-    { id: 'Kore', label: 'Kore' },
-    { id: 'Leda', label: 'Leda' },
-    { id: 'Zephyr', label: 'Zephyr' },
-]);
+const { GEMINI_VOICES } = require('../geminiVoiceCatalog');
 
 function safeCloseReason(event) {
     const reason = String(event?.reason || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 160);

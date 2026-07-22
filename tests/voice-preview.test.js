@@ -40,3 +40,37 @@ test('voice preview validates input, proxies fixed text and caches audio', async
     assert.match(calls[0].body.text, /Laura/);
     assert.match(calls[0].options.headers.Authorization, /^Bearer /);
 });
+
+test('Gemini preview returns a playable wave in the selected voice and language', async (t) => {
+    const calls = [];
+    const gemini = {
+        createSession(options) {
+            calls.push({ options });
+            return {
+                async connect() {},
+                async sendText(text, context) {
+                    calls.push({ text });
+                    context.onAudioChunk({ audio_base64: Buffer.from([1, 2, 3, 4]).toString('base64') });
+                    context.onEvent({ type: 'audio.end' });
+                },
+                close() {},
+            };
+        },
+    };
+    const { server } = createServer({
+        env: { REALTIME_PROVIDER: 'grok', XAI_API_KEY: 'test-only', HOST: '127.0.0.1', PORT: '3000' },
+        providerOverrides: { gemini },
+    });
+    await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+    t.after(() => new Promise((resolve) => { server.closeAllConnections?.(); server.close(resolve); }));
+    const response = await fetch(`http://127.0.0.1:${server.address().port}/api/voice-preview`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: 'gemini', voice: 'Gacrux', language: 'fr', speech_speed: 0.8 }),
+    });
+    const wave = Buffer.from(await response.arrayBuffer());
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type'), /audio\/wav/);
+    assert.equal(wave.subarray(0, 4).toString(), 'RIFF');
+    assert.equal(calls[0].options.voice, 'Gacrux');
+    assert.match(calls[1].text, /Laura/);
+});

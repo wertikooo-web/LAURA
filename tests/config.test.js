@@ -27,9 +27,9 @@ test('xAI configuration requires a server-side key and wss URL', () => {
 test('Gemini configuration requires a key and a supported voice', () => {
     assert.throws(() => loadConfig({ REALTIME_VOICE_PROVIDER: 'gemini' }), /gemini_api_key_missing/);
     assert.throws(() => loadConfig({ REALTIME_VOICE_PROVIDER: 'gemini', GEMINI_API_KEY: 'test-only', GEMINI_VOICE_ID: 'unknown' }), /gemini_voice_invalid/);
-    const config = loadConfig({ REALTIME_VOICE_PROVIDER: 'gemini', GEMINI_API_KEY: 'test-only', GEMINI_VOICE_ID: 'Kore' });
+    const config = loadConfig({ REALTIME_VOICE_PROVIDER: 'gemini', GEMINI_API_KEY: 'test-only', GEMINI_VOICE_ID: 'Gacrux' });
     assert.equal(config.provider, 'gemini');
-    assert.equal(config.gemini.voice, 'Kore');
+    assert.equal(config.gemini.voice, 'Gacrux');
 });
 
 test('session options fail private and normalize unknown values', () => {
@@ -44,6 +44,8 @@ test('session options fail private and normalize unknown values', () => {
         noSave: true,
         deviceId: '',
         realtimeProvider: 'mock',
+        characterId: '',
+        scenarioId: '',
     });
     assert.equal(normalizeSessionOptions({ no_save: false }).noSave, false);
     assert.deepEqual(normalizeSessionOptions({ language: 'ro', voice: 'luna' }, { defaultVoice: 'ara' }), {
@@ -57,6 +59,8 @@ test('session options fail private and normalize unknown values', () => {
         noSave: true,
         deviceId: '',
         realtimeProvider: 'mock',
+        characterId: '',
+        scenarioId: '',
     });
     assert.equal(normalizeSessionOptions({ voice: 'male-voice' }, { defaultVoice: 'ursa' }).voice, 'ursa');
     assert.equal(normalizeSessionOptions({ adult_mode: 'direct' }).adultMode, 'direct');

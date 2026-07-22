@@ -7,6 +7,7 @@ const path = require('path');
 const DEVICE_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_MEMORY_CHARS = 500;
 const MAX_MEMORIES_PER_DEVICE = 100;
+const MEMORY_SCOPES = new Set(['global_user', 'character_relationship']);
 
 function validateDeviceId(value) {
     const deviceId = String(value || '').trim();
@@ -22,6 +23,13 @@ function validateContent(value) {
 }
 
 function validateMemoryId(value) { return validateDeviceId(value); }
+function normalizeMemoryOptions(options = {}) {
+    const scope = options.scope || 'global_user';
+    if (!MEMORY_SCOPES.has(scope)) throw Object.assign(new Error('invalid_memory_scope'), { code: 'invalid_memory_scope' });
+    const characterId = options.characterId ? validateMemoryId(options.characterId) : null;
+    if (scope === 'character_relationship' && !characterId) throw Object.assign(new Error('memory_character_required'), { code: 'memory_character_required' });
+    return { scope, characterId };
+}
 
 class InMemoryMemoryStore {
     constructor(seed = {}) {
@@ -32,11 +40,12 @@ class InMemoryMemoryStore {
     }
     async getSettings(deviceId) { validateDeviceId(deviceId); return { enabled: this.settings.get(deviceId)?.enabled === true }; }
     async updateSettings(deviceId, { enabled }) { validateDeviceId(deviceId); const value = { enabled: enabled === true }; this.settings.set(deviceId, value); return value; }
-    async list(deviceId) { validateDeviceId(deviceId); return (this.memories.get(deviceId) || []).map((item) => ({ ...item })); }
-    async create(deviceId, content) {
+    async list(deviceId, { characterId = null } = {}) { validateDeviceId(deviceId); if (characterId) validateMemoryId(characterId); return (this.memories.get(deviceId) || []).filter((item) => !item.scope || item.scope === 'global_user' || (item.scope === 'character_relationship' && item.character_id === characterId)).map((item) => ({ scope: item.scope || 'global_user', character_id: item.character_id || null, ...item })); }
+    async create(deviceId, content, options = {}) {
         validateDeviceId(deviceId); const normalized = validateContent(content); const items = this.memories.get(deviceId) || [];
         if (items.length >= MAX_MEMORIES_PER_DEVICE) throw Object.assign(new Error('memory_limit_reached'), { code: 'memory_limit_reached' });
-        const now = new Date().toISOString(); const item = { id: crypto.randomUUID(), content: normalized, created_at: now, updated_at: now };
+        const { scope, characterId } = normalizeMemoryOptions(options);
+        const now = new Date().toISOString(); const item = { id: crypto.randomUUID(), content: normalized, scope, character_id: characterId, created_at: now, updated_at: now };
         items.unshift(item); this.memories.set(deviceId, items); return { ...item };
     }
     async update(deviceId, memoryId, content) {
@@ -81,6 +90,6 @@ function createMemoryStore({ nodeEnv = 'development', memoryFilePath = '', datab
     return new UnavailableMemoryStore();
 }
 
-function formatMemoryContext(items) { return items.slice(0, 50).map((item, index) => `${index + 1}. ${item.content}`).join('\n'); }
+function formatMemoryContext(items) { return items.slice(0, 50).map((item, index) => `${index + 1}. [${item.scope === 'character_relationship' ? 'this relationship' : 'global user fact'}] ${item.content}`).join('\n'); }
 
-module.exports = { MAX_MEMORY_CHARS, MAX_MEMORIES_PER_DEVICE, validateDeviceId, validateMemoryId, validateContent, InMemoryMemoryStore, FileMemoryStore, UnavailableMemoryStore, createMemoryStore, formatMemoryContext };
+module.exports = { MAX_MEMORY_CHARS, MAX_MEMORIES_PER_DEVICE, MEMORY_SCOPES, validateDeviceId, validateMemoryId, validateContent, normalizeMemoryOptions, InMemoryMemoryStore, FileMemoryStore, UnavailableMemoryStore, createMemoryStore, formatMemoryContext };
