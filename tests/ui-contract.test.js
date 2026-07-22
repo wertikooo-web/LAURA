@@ -103,7 +103,7 @@ test('settings use a collapsible desktop panel and a separate mobile screen', ()
   assert.match(styles, /\.topbar\{position:absolute;[^}]*left:0;right:0;[^}]*padding:18px 18px 0/);
   assert.match(app, /laura_settings_collapsed/);
   assert.match(app, /panel\.dataset\.open='false'/);
-  assert.match(styles, /@media\(max-width:520px\)\{\.topbar\{padding:26px 14px 0\}\.presence\{top:50%\}/);
+  assert.match(styles, /@media\(max-width:520px\)[\s\S]*?\.brand \.eyebrow\{transform:translateY\(-4px\)\}[\s\S]*?\.presence\{top:54%\}/);
 });
 
 test('mobile settings trigger sits in the lower-right of the presence card', () => {
@@ -116,6 +116,15 @@ test('character studio offers manual and generated drafts without a second realt
     assert.match(app, /character_id:state\.characterId/);
     assert.match(app, /result\.variants\[0\]/);
     assert.match(app, /Черновик не сохранён/);
+    assert.match(styles, /\[hidden\]\{display:none!important\}/);
+    assert.match(app, /\.brand h1'\)\.textContent=item\.name/);
+});
+
+test('privacy no-save checkbox explains its current meaning', () => {
+  assert.match(html, /id="noSaveHint"/);
+  assert.match(html, /aria-describedby="noSaveHint"/);
+  assert.match(app, /function updateNoSaveHint\(\)/);
+  assert.match(app, /updateNoSaveHint\(\)/);
 });
 
 test('conversation mode can be changed during an active session', () => {

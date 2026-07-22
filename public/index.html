@@ -28,7 +28,7 @@
       </div>
       <div class="presence-copy">
         <p id="statusLabel" class="status"></p>
-        <h2 id="presenceTitle" data-i18n-html="presenceTitle">Можно ничего<br>сейчас не решать.</h2>
+        <h2 id="presenceTitle" data-i18n-html="presenceTitle">Можно ничего<br>сейчас не решать</h2>
         <p id="statusHint" class="hint"></p>
       </div>
     </section>
@@ -65,7 +65,7 @@
         <div id="settingsPanelBody" class="settings-panel-body">
           <section class="selectors" aria-label="Session settings">
             <label class="character-setting"><span>Character</span><select id="characterSelect"></select></label>
-            <button id="characterManageButton" class="preview-button character-manage-button" type="button">Characters</button>
+            <button id="characterManageButton" class="preview-button character-manage-button" type="button">Создать / изменить персонажа</button>
             <label><span>Realtime</span><select id="providerSelect"></select></label>
             <label><span>Voice</span><select id="voiceSelect"></select></label>
             <label><span>Adult</span><select id="adultModeSelect"><option value="warm">Warm</option><option value="flirty">Flirty</option><option value="sensual">Sensual</option><option value="direct">+</option></select></label>
@@ -92,7 +92,7 @@
   <dialog id="privacyDialog" class="gate compact">
     <form method="dialog" class="gate-card">
       <p class="eyebrow" data-i18n="privacyUpper">ПРИВАТНОСТЬ</p><h2 data-i18n="currentSession">Текущая сессия</h2>
-      <label class="toggle-row"><span><strong data-i18n="noSave">Не сохранять разговор</strong><small data-i18n="noSaveHint">В прототипе включено по умолчанию</small></span><input id="noSaveToggle" type="checkbox" checked></label>
+      <label class="toggle-row"><span><strong data-i18n="noSave">Не сохранять разговор</strong><small id="noSaveHint">Галочка стоит — разговор не сохраняется</small></span><input id="noSaveToggle" type="checkbox" aria-describedby="noSaveHint" checked></label>
       <p id="privacyText">Сырое аудио никогда не записывается на диск. Память включается только с вашего согласия.</p>
       <section class="memory-panel" aria-labelledby="memoryTitle">
         <div class="memory-heading"><strong id="memoryTitle">Память LAURA</strong><span id="memoryStatus"></span></div>
@@ -128,7 +128,7 @@
               <small>Результат сначала появится здесь как редактируемый черновик и не попадёт в базу без кнопки «Сохранить».</small>
             </div>
             <div class="editor-grid">
-              <label><span>Имя</span><input id="characterName" maxlength="80" required></label>
+              <label><span>Имя на главном экране</span><input id="characterName" maxlength="80" required></label>
               <label><span>Возраст (18+)</span><input id="characterAge" type="number" min="18" max="100" value="30" required></label>
               <label class="wide"><span>Короткое описание</span><input id="characterDescription" maxlength="240"></label>
               <label><span>Основная роль</span><input id="characterRole" maxlength="120" placeholder="companion, expert, guide"></label>
@@ -153,7 +153,7 @@
               <label class="wide"><span>Сценарии: одна строка — один сценарий</span><textarea id="characterScenarios" rows="3" placeholder="Вечерний разговор\nВинный консультант"></textarea></label>
             </div>
             <p id="characterEditorStatus" class="editor-status"></p>
-            <div class="editor-actions"><button id="characterDeleteButton" class="danger-button" type="button" hidden>Удалить</button><button id="characterDuplicateButton" type="button" hidden>Дублировать</button><button id="characterSaveButton" class="primary-button" type="submit">Сохранить персонажа</button></div>
+            <div class="editor-actions"><button id="characterDeleteButton" class="danger-button" type="button" hidden>Удалить</button><button id="characterDuplicateButton" type="button" hidden>Создать редактируемую копию</button><button id="characterSaveButton" class="primary-button" type="submit">Сохранить персонажа</button></div>
           </form>
         </section>
       </div>
