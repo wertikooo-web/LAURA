@@ -45,7 +45,7 @@ test('Gemini adapter uses official Live setup and explicit activity signals with
     const providerSession = new GeminiLiveProviderSession({
         config: { apiKey: 'test', model: 'gemini-test', voice: 'Aoede' },
         options: { systemInstructionText: 'shared prompt', voice: 'Kore' },
-        dependencies: { client: { live: { connect: async (options) => { connectOptions = options; return { sendRealtimeInput: (value) => sent.push(value), sendClientContent: (value) => sent.push(value), close() {} }; } } } },
+        dependencies: { client: { live: { connect: async (options) => { connectOptions = options; queueMicrotask(() => options.callbacks.onmessage({ setupComplete: {} })); return { sendRealtimeInput: (value) => sent.push(value), sendClientContent: (value) => sent.push(value), close() {} }; } } } },
     });
     await providerSession.connect();
     await providerSession.startInput();

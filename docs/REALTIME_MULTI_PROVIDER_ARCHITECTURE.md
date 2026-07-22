@@ -30,6 +30,8 @@ explicit activity start/end signals, audio response modality, and input/output
 transcription. Gemini automatic activity detection is explicitly disabled when
 the application sends those manual turn-boundary signals; mixing both modes is
 invalid and can leave a voice turn connected but unanswered.
+The adapter also waits for Gemini's `setupComplete` event before exposing
+`session.ready`; an open WebSocket alone is not a ready model session.
 
 ## Switching and lifetime
 

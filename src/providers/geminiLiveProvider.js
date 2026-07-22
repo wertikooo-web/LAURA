@@ -49,6 +49,11 @@ class GeminiLiveProviderSession {
         this.connectPromise = (async () => {
             const GoogleGenAI = this.dependencies.GoogleGenAI || require('@google/genai').GoogleGenAI;
             const ai = this.dependencies.client || new GoogleGenAI({ apiKey: this.config.apiKey });
+            let setupSettled = false;
+            let resolveSetup;
+            let rejectSetup;
+            const setupPromise = new Promise((resolve, reject) => { resolveSetup = resolve; rejectSetup = reject; });
+            const setupTimer = setTimeout(() => rejectSetup(Object.assign(new Error('gemini_setup_timeout'), { code: 'session_creation_failed' })), 12_000);
             this.session = await ai.live.connect({
                 model: this.config.model,
                 config: {
@@ -58,12 +63,28 @@ class GeminiLiveProviderSession {
                     inputAudioTranscription: {}, outputAudioTranscription: {},
                 },
                 callbacks: {
-                    onopen: () => log('provider_connected', { provider: this.name, providerInstanceId: this.instanceId }),
-                    onmessage: (message) => this.handleMessage(message),
-                    onerror: (error) => this.emitProviderError(error),
-                    onclose: () => { if (!this.closed && this.activeContext) this.emitProviderError(new Error('gemini_connection_closed')); },
+                    onopen: () => {},
+                    onmessage: (message) => {
+                        if (message?.setupComplete && !setupSettled) {
+                            setupSettled = true;
+                            resolveSetup();
+                            return;
+                        }
+                        this.handleMessage(message);
+                    },
+                    onerror: (error) => {
+                        if (!setupSettled) rejectSetup(error);
+                        this.emitProviderError(error);
+                    },
+                    onclose: () => {
+                        const error = new Error('gemini_connection_closed');
+                        if (!setupSettled) rejectSetup(error);
+                        if (!this.closed && this.activeContext) this.emitProviderError(error);
+                    },
                 },
             });
+            try { await setupPromise; } finally { clearTimeout(setupTimer); }
+            log('provider_connected', { provider: this.name, providerInstanceId: this.instanceId });
             if (this.closed) { this.session.close?.(); throw Object.assign(new Error('provider_session_closed'), { code: 'connection_closed' }); }
             for (const chunk of this.pendingAudio.splice(0)) this.sendAudioNow(chunk);
         })().catch((error) => {
