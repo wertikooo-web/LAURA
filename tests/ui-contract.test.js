@@ -12,6 +12,7 @@ const styles = fs.readFileSync(path.join(root, 'public', 'styles.css'), 'utf8');
 
 test('connection control is separate from the push-to-talk control', () => {
   assert.match(html, /<header[\s\S]*id="connectButton"[\s\S]*>CONNECT<\/button>/);
+  assert.match(html, /class="presence-card"[\s\S]*<header class="topbar"[\s\S]*id="connectButton"[\s\S]*id="languageSelect"[\s\S]*id="presence"/);
   assert.match(html, /id="talkButton"[\s\S]*data-i18n="talkButton"/);
   assert.match(styles, /\.connection-button/);
   assert.match(styles, /\.talk-button\{[^}]*display:flex/);
@@ -91,6 +92,7 @@ test('settings use a collapsible desktop panel and a separate mobile screen', ()
   assert.match(styles, /grid-template-columns:minmax\(0,650px\) 280px/);
   assert.match(styles, /\.workspace\.settings-collapsed\{grid-template-columns:minmax\(0,650px\) 50px\}/);
   assert.match(styles, /\.settings-panel\{position:fixed;[^}]*height:100dvh/);
+  assert.match(styles, /\.topbar\{position:absolute;[^}]*left:0;right:0;[^}]*padding:18px 18px 0/);
   assert.match(app, /laura_settings_collapsed/);
   assert.match(app, /panel\.dataset\.open='false'/);
 });

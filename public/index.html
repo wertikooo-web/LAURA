@@ -9,19 +9,18 @@
 </head>
 <body>
   <main class="shell">
-    <header class="topbar">
-      <button id="connectButton" class="connection-button" type="button" aria-pressed="false">CONNECT</button>
-      <div class="brand"><p class="eyebrow">VOICE COMPANION · 18+</p><h1>LAURA</h1></div>
-      <div class="topbar-actions">
-        <label class="topbar-language"><span>Language</span><select id="languageSelect"><option value="ru">Russian</option><option value="ro">Romanian</option><option value="en">English</option><option value="fr">French</option></select></label>
-        <button id="settingsOpenButton" class="icon-button settings-open-button" type="button" aria-controls="settingsPanel" aria-label="Open settings">⚙</button>
-      </div>
-    </header>
-
     <div id="workspace" class="workspace">
       <section class="conversation-pane" aria-label="LAURA conversation">
 
     <section class="presence-card" aria-labelledby="presenceTitle">
+      <header class="topbar">
+        <button id="connectButton" class="connection-button" type="button" aria-pressed="false">CONNECT</button>
+        <div class="brand"><p class="eyebrow">VOICE COMPANION · 18+</p><h1>LAURA</h1></div>
+        <div class="topbar-actions">
+          <button id="settingsOpenButton" class="icon-button settings-open-button" type="button" aria-controls="settingsPanel" aria-label="Open settings">⚙</button>
+          <label class="topbar-language"><span>Language</span><select id="languageSelect"><option value="ru">Russian</option><option value="ro">Romanian</option><option value="en">English</option><option value="fr">French</option></select></label>
+        </div>
+      </header>
       <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
       <div id="presence" class="presence" data-state="idle" aria-hidden="true">
         <div class="presence-ring ring-one"></div><div class="presence-ring ring-two"></div>
