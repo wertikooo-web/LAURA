@@ -10,6 +10,14 @@ const GEMINI_VOICES = Object.freeze([
     { id: 'Zephyr', label: 'Zephyr' },
 ]);
 
+function safeCloseReason(event) {
+    const reason = String(event?.reason || '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, 160);
+    return {
+        closeCode: Number.isInteger(event?.code) ? event.code : 0,
+        closeReason: reason || 'not_provided',
+    };
+}
+
 function extractGeminiEvents(message, context) {
     const events = [];
     const serverContent = message?.serverContent;
@@ -76,8 +84,18 @@ class GeminiLiveProviderSession {
                         if (!setupSettled) rejectSetup(error);
                         this.emitProviderError(error);
                     },
-                    onclose: () => {
-                        const error = new Error('gemini_connection_closed');
+                    onclose: (event) => {
+                        const diagnostic = safeCloseReason(event);
+                        const error = Object.assign(new Error('gemini_connection_closed'), {
+                            code: 'connection_closed',
+                            diagnostic,
+                        });
+                        log('provider_connection_closed', {
+                            provider: this.name,
+                            providerInstanceId: this.instanceId,
+                            duringSetup: !setupSettled,
+                            ...diagnostic,
+                        });
                         if (!setupSettled) rejectSetup(error);
                         if (!this.closed && this.activeContext) this.emitProviderError(error);
                     },

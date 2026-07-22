@@ -58,6 +58,26 @@ test('Gemini adapter uses official Live setup and explicit activity signals with
     assert.deepEqual(sent.map((value) => Object.keys(value)[0]), ['activityStart', 'audio', 'activityEnd']);
 });
 
+test('Gemini adapter reports a safe close diagnostic when setup is rejected', async () => {
+    const logs = [];
+    const providerSession = new GeminiLiveProviderSession({
+        config: { apiKey: 'test', model: 'gemini-test', voice: 'Aoede' },
+        options: { systemInstructionText: 'shared prompt' },
+        dependencies: { client: { live: { connect: async (options) => {
+            queueMicrotask(() => options.callbacks.onclose({ code: 1008, reason: 'invalid setup\n' }));
+            return { close() {} };
+        } } } },
+    });
+    await assert.rejects(providerSession.connect((event, data) => logs.push({ event, data })), (error) => error.code === 'connection_closed');
+    assert.deepEqual(logs, [{
+        event: 'provider_connection_closed',
+        data: {
+            provider: 'gemini', providerInstanceId: providerSession.instanceId,
+            duringSetup: true, closeCode: 1008, closeReason: 'invalid setup',
+        },
+    }]);
+});
+
 test('provider errors share safe categories', () => {
     assert.equal(normalizeProviderError(new Error('API key unauthorized'), 'gemini').code, 'authentication_failed');
     assert.equal(normalizeProviderError(Object.assign(new Error('quota exceeded'), { status: 429 }), 'grok').code, 'rate_limited');
