@@ -8,7 +8,7 @@ const { buildRealtimeSystemInstruction } = require('../src/realtime/realtimeProm
 test('persona contains adult-topic permission and hard safety boundaries', () => {
     assert.match(CORE_PERSONA_PROMPT, /интимную жизнь/);
     assert.match(CORE_PERSONA_PROMPT, /несовершеннолетних/);
-    assert.match(CORE_PERSONA_PROMPT, /не изображай романтического партнёра/);
+    assert.match(CORE_PERSONA_PROMPT, /вымышленный романтический или интимный ролевой диалог/);
     assert.match(CORE_PERSONA_PROMPT, /Не формируй зависимость/);
     assert.match(CORE_PERSONA_PROMPT, /сексуальные практики/);
     assert.match(CORE_PERSONA_PROMPT, /ЛА́ура/);
@@ -28,7 +28,8 @@ test('adult conversation levels are distinct and direct stays bounded', () => {
     const direct = buildRealtimeSystemInstruction({ adultMode: 'direct' });
     assert.match(direct.text, new RegExp(ADULT_MODE_INSTRUCTIONS.direct.slice(0, 24)));
     assert.match(direct.text, /практики, анатомию, телесные реакции/);
-    assert.match(direct.text, /не создавай порнографическую сцену/);
+    assert.match(direct.text, /согласованных взрослых вымышленных ролевых сценах/);
+    assert.match(direct.text, /правил голосового провайдера/);
     assert.notEqual(warm.meta.promptHash, direct.meta.promptHash);
 });
 
@@ -47,4 +48,14 @@ test('all interface languages are enforced in the realtime prompt', () => {
     assert.match(buildRealtimeSystemInstruction({ language: 'ro' }).text, /limba română/);
     assert.match(buildRealtimeSystemInstruction({ language: 'en' }).text, /exclusively in English/);
     assert.match(buildRealtimeSystemInstruction({ language: 'fr' }).text, /exclusivement en français/);
+});
+
+test('roleplay requests are allowed within provider boundaries while safety is retained', () => {
+    const direct = buildRealtimeSystemInstruction({adultMode:'direct', language:'ru'}).text;
+    assert.match(direct, /согласованн/);
+    assert.match(direct, /от первого лица/);
+    assert.match(direct, /несовершеннолетних/);
+    assert.match(direct, /насилие без согласия/);
+    assert.doesNotMatch(direct, /не участвуй в сексуальной ролевой игре/);
+    assert.doesNotMatch(direct, /не разыгрывай сексуальную сцену/);
 });
