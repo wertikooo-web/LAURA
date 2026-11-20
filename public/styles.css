@@ -52,3 +52,18 @@ body.diana-embed .presence-card{margin-top:0}
 body.diana-embed .conversation-pane{max-width:100%;min-width:0}
 body.diana-embed .presence-card .brand .eyebrow{font-size:10px}
 body.diana-embed .conversation{max-height:32dvh}
+
+/* Embedded DIANA has no settings sidebar. Collapse the original desktop
+   two-column workspace into one centered conversation column. */
+body.diana-embed .workspace{
+ display:grid;
+ grid-template-columns:minmax(0,650px);
+ justify-content:center;
+ gap:0;
+ width:100%;
+ margin-inline:auto;
+}
+body.diana-embed .conversation-pane{
+ width:100%;
+ margin-inline:auto;
+}
