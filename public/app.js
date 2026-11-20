@@ -4,6 +4,14 @@ const $ = (id) => document.getElementById(id);
 const dianaEmbed= new URLSearchParams(location.search).get('embed')==='diana';
 const embeddedParams=new URLSearchParams(location.search);
 function embedParam(key,allowed,fallback){const value=embeddedParams.get(key);return allowed.includes(value)?value:fallback}
+// Embedded 18+ uses ephemeral browser state only. Third-party frames may block
+// localStorage entirely; this mode never reads/writes LAURA's long-term preferences.
+const embeddedStore=new Map();
+const localStorage=dianaEmbed?{
+ getItem:key=>embeddedStore.has(key)?embeddedStore.get(key):null,
+ setItem:(key,value)=>{embeddedStore.set(String(key),String(value))},
+ removeItem:key=>{embeddedStore.delete(String(key))}
+}:window.localStorage;
 if(dianaEmbed)document.body.classList.add('diana-embed');
 
 function getDeviceId(){let value=localStorage.getItem('laura_device_id');if(!value){value=crypto.randomUUID();localStorage.setItem('laura_device_id',value);}return value;}
