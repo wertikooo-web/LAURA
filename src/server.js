@@ -272,6 +272,7 @@ function createServer({ env = process.env, memoryStore: providedMemoryStore, cha
                 'X-Content-Type-Options': 'nosniff',
                 'Referrer-Policy': 'no-referrer',
                 'Permissions-Policy': 'camera=(), microphone=(self)',
+                'Content-Security-Policy': url.searchParams.get('embed') === 'diana' ? "frame-ancestors https://diana-voice-production.up.railway.app" : "frame-ancestors 'none'",
             });
             if (request.method === 'HEAD') return response.end();
             fs.createReadStream(filePath).pipe(response);
