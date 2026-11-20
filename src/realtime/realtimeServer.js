@@ -36,6 +36,7 @@ function attachRealtimeServer(server, { resolveProvider, defaultProvider = 'mock
             return;
         }
         if (!acceptWebSocket(request, socket)) return;
+        const dianaEmbedded = url.searchParams.get('embed') === 'diana';
 
         const sessionId = id('session');
         let started = false;
@@ -105,7 +106,7 @@ function attachRealtimeServer(server, { resolveProvider, defaultProvider = 'mock
                 if (type === 'transcript.model.delta') transcriptDelta += String(event.text || '');
                 if (type === 'transcript.model' && !event.text && transcriptDelta) event.text = transcriptDelta;
                 if (type === 'transcript.user' || type.startsWith('transcript.model')) {
-                    if (allowTranscriptLogging) log(type, { chars: String(event.text || '').length });
+                    if (allowTranscriptLogging && !dianaEmbedded) log(type, { chars: String(event.text || '').length });
                 }
                 send({
                     ...event,
@@ -135,11 +136,12 @@ function attachRealtimeServer(server, { resolveProvider, defaultProvider = 'mock
         async function startSession(payload) {
             if (started) return fail('session_already_started', 'The session has already started.');
             try {
-                providerMetadata = resolveProvider(payload.realtime_provider || payload.realtimeProvider || defaultProvider);
+                providerMetadata = resolveProvider(dianaEmbedded ? 'grok' : (payload.realtime_provider || payload.realtimeProvider || defaultProvider));
             } catch (error) {
                 return fail(error.code || 'provider_configuration_invalid', 'The selected realtime provider is not configured.', { close: true });
             }
             const options = normalizeSessionOptions(payload, { defaultVoice: providerMetadata.voice, defaultProvider: providerMetadata.name, voices: providerMetadata.voices });
+            if (dianaEmbedded) options.noSave = true;
             if (!options.adultConfirmed) {
                 return fail('adult_confirmation_required', 'LAURA is available only after 18+ confirmation.', { close: true });
             }
@@ -154,13 +156,13 @@ function attachRealtimeServer(server, { resolveProvider, defaultProvider = 'mock
             let characterContext = null;
             try {
                 validateDeviceId(options.deviceId);
-                characterContext = await characterService?.getSessionContext(options.deviceId, options.characterId || LAURA_CHARACTER_ID, options.scenarioId || null);
+                if (!dianaEmbedded) characterContext = await characterService?.getSessionContext(options.deviceId, options.characterId || LAURA_CHARACTER_ID, options.scenarioId || null);
             } catch (error) {
                 return fail(error.code || 'character_load_failed', 'Could not load the selected character.', { close: true });
             }
             let memoryEnabled = false;
             let sessionMemory = null;
-            if (memoryStore?.available) {
+            if (!dianaEmbedded && memoryStore?.available) {
                 try {
                     validateDeviceId(options.deviceId);
                     memoryEnabled = (await memoryStore.getSettings(options.deviceId)).enabled;
@@ -187,7 +189,7 @@ function attachRealtimeServer(server, { resolveProvider, defaultProvider = 'mock
             started = true;
             sessionOptions = effectiveOptions;
             try {
-                await characterService?.saveSnapshot(sessionId, options.deviceId, characterContext, { voice: options.voice, provider: providerMetadata.name, promptHash: prompt.meta.promptHash });
+                if (!dianaEmbedded) await characterService?.saveSnapshot(sessionId, options.deviceId, characterContext, { voice: options.voice, provider: providerMetadata.name, promptHash: prompt.meta.promptHash });
             } catch (error) {
                 return fail(error.code || 'character_snapshot_failed', 'Could not preserve the character session snapshot.', { close: true });
             }
